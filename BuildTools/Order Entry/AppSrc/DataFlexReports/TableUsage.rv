@@ -1,0 +1,203 @@
+Use Windows.pkg
+Use DFRptVw.pkg
+Use cDRReport.pkg
+Use DRExportOptions.dg
+Use DRStatuspanel.dg
+Use cDRCommandBarSystem.pkg
+Use cDRMenuItem.pkg
+Use cDRZoomMenuItem.pkg
+Use cDRCurrentPageMenuItem.pkg
+Use cDRExportMenuItem.pkg
+Use cDRPrintMenuItem.pkg
+Use cDRFirstPageMenuItem.pkg
+Use cDRPreviousPageMenuItem.pkg
+Use cDRNextPageMenuItem.pkg
+Use cDRLastPageMenuItem.pkg
+Use cDRRefreshMenuItem.pkg
+
+// This is an example that shows how RDS (Runtime Data Source) can be used to make a report that cannot be produced
+// directly as the data does not come from a database; the data displayed by the report comes from the filelist and
+// from the tables in the workspace.
+
+// As an extra; when the table use information is collected for the report it is exported as JSON data to disk so 
+// that the collected data can be used as test data for the report from the DataFlex Reports Studio
+
+Deferred_View Activate_oTableUsageReportView for ;
+Object oTableUsageReportView is a ReportView
+    Set Location to 6 6
+    Set Size to 317 511
+    Set Label to "Table Usage"
+    Set Output_Device_Mode to PRINT_TO_WINDOW
+    Set Border_Style to Border_Thick
+    Set Icon to "DR.Ico"
+
+    { Description = "Will be used to store the object id of the cDRReport" }
+    { InitialValue = 0 }
+    Property Handle phoReport
+
+    Object oCommandBars is a cDRCommandBarSystem
+        Object oDRToolBar is a cCJToolbar
+            Set pbCloseable to False
+            Set pbEnableDocking to False
+            Set pbGripper to False
+            Set peStretched to stStretch
+            Set pbDockNextTo to False
+
+            Object oFirstPage is a cDRFirstPageMenuItem
+            End_Object
+
+            Object oPreviousPage is a cDRPreviousPageMenuItem
+            End_Object
+
+            Object oCurrentPage is a cDRCurrentPageMenuItem
+                Set peControlType to xtpControlEdit
+            End_Object
+
+            Object oNextPage is a cDRNextPageMenuItem
+            End_Object
+
+            Object oLastPage is a cDRLastPageMenuItem
+            End_Object
+
+            Object oRefresh is a cDRRefreshMenuItem
+            End_Object
+
+            Object oPrint is a cDRPrintMenuItem
+            End_Object
+
+            Object oZoom is a cDRZoomMenuItem
+            End_Object
+
+            Object oExport is a cDRExportMenuItem
+                Set phoExportOptionsDialog to (oDRExportOptionsDialog)
+            End_Object
+        End_Object
+    End_Object
+
+    Object oReport is a cDRReport
+        Set pePreviewStyle to C_DRPREVIEW_EMBEDDED
+        Set phoReport to Self
+        Set Location to 21 5
+        Set Size to 290 498
+        Set peAnchors to anAll
+        Set pbShowStatusPanel to True
+        Set phoStatusPanel to oDRStatusPanel
+        Set psReportName to "Table Usage.dr"
+
+        Procedure OnPageChanged Integer iPage
+            Set psText of (oCurrentPage (oDRToolBar (oCommandBars))) to (String (iPage))
+        End_Procedure
+
+        Procedure OnZoomChanged Integer iFactor
+            Set psText of (oZoom (oDRToolBar (oCommandBars))) to (String (iFactor) + "%")
+        End_Procedure
+
+        Procedure OnInitializeReport
+            String sReportId
+            Integer eOutputDeviceMode
+
+            Forward Send OnInitializeReport
+
+            // Convert from the ReportView Output_Device_Mode to peOutputDestination
+            Get Output_Device_Mode to eOutputDeviceMode
+            Set peOutputDestination to eOutputDeviceMode
+
+            Get psReportId to sReportId
+
+            Send LoadRDSData sReportId -1 0
+        End_Procedure
+
+        // This method will be called once for the main report and once per sub-report
+        // at each level of sub-reports.
+        // The iSibling parameter contains the N-th sub-report at the same level. If the
+        // value equals to -1 it means the main report.
+        // The iLevel parameter contains the depth of sub-report nestings. For a sub-report
+        // in a main report the value will be 1 and a sub-report of a sub-report makes it 2.
+        Procedure LoadRDSData String sReportId Integer iSibling Integer iLevel
+            Variant[][] vData
+            Integer iElements iElement iSubReports iSubReport iChannel
+            tDRTableName[] ReportTableNames
+            String sSubReportId sFolder sFileName
+            UChar[] ucTableData
+
+            Get RDSTableNames sReportId to ReportTableNames
+            Move (SizeOfArray (ReportTableNames)) to iElements
+            If (iElements > 0) Begin
+                Decrement iElements
+                For iElement from 0 to iElements
+                    Get AddRDSData ReportTableNames[iElement].sTableName iSibling iLevel to vData
+                    Send TableData sReportId ReportTableNames[iElement].iTable vData
+                    Get ConvertTableDataToJsonSampleData vData to ucTableData
+                    If (SizeOfArray (ucTableData) > 0) Begin
+                        Move (Seq_New_Channel ()) to iChannel
+                        If (iChannel >= 0) Begin
+                            Get ReportsCacheFolder to sFolder
+                            Move (sFolder - ReportTableNames[iElement].sTableName - '.json') to sFileName
+                            Direct_Output channel iChannel sFileName
+                            Write channel iChannel ucTableData
+                            Close_Output channel iChannel
+                            Send Seq_Release_Channel iChannel
+                        End
+                    End
+                Loop
+            End
+
+            Get SubReportCount sReportId to iSubReports
+            If (iSubReports > 0) Begin
+                Decrement iSubReports
+                For iSubReport from 0 to iSubReports
+                    Get SubReportId sReportId iSubReport to sSubReportId
+                    Send LoadRDSData sSubReportId iSubReport (iLevel + 1)
+                Loop
+            End
+        End_Procedure
+        
+        // Note: The Runtime DataSource row will be rejected if:
+        // 1: The number of elements in the 2nd dimension does not match with the row layout
+        // 2: The data-type of any element in the 2nd dimension does not match, cannot be
+        //    converted to the data-type defined in the row layout. For example: A zero date
+        //    in a date or datetime column is invalid!
+        Function AddRDSData String sTableName Integer iSibling Integer iLevel Returns Variant[][]
+            Variant[][] vData
+            Integer iRow
+            Handle hTable
+            Boolean bOpenedBefore bOpened
+
+            Move 0 to iRow
+            
+            Case Begin
+                Case (iSibling = -1 and iLevel = 0 and sTableName = "DataUse")
+                    Get_Attribute DF_FILE_NEXT_USED of hTable to hTable
+                    While (hTable > 0)
+                        Get_Attribute DF_FILE_OPENED of hTable to bOpened
+                        Move bOpened to bOpenedBefore
+                        If (not (bOpened)) Begin
+                            Open hTable
+                            Get_Attribute DF_FILE_OPENED of hTable to bOpened
+                        End
+                        If (bOpened) Begin
+                            Move hTable to vData[iRow][0]
+                            Get_Attribute DF_FILE_LOGICAL_NAME of hTable to vData[iRow][1]
+                            Get_Attribute DF_FILE_RECORDS_USED of hTable to vData[iRow][2]
+                            If (not (bOpenedBefore)) Begin
+                                Close hTable
+                            End
+                            Increment iRow
+                        End
+                        Get_Attribute DF_FILE_NEXT_USED of hTable to hTable
+                    Loop
+                    Case Break
+            Case End
+
+            Function_Return vData
+        End_Function
+    End_Object
+    
+    Procedure OnEnterArea Handle hoFrom
+        Forward Send OnEnterArea
+        
+        Send RunReport of oReport
+    End_Procedure
+
+    On_Key Key_Escape Send Close_Panel
+Cd_End_Object

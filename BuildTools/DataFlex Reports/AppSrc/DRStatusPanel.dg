@@ -1,0 +1,49 @@
+Use Windows.pkg
+Use Dfbitmap.pkg
+Use DRLanguage.Inc
+
+Object oDRStatusPanel is a ToolPanel
+    Set Sysmenu_Icon to False
+    Set Minimize_Icon to False
+    Set Label to C_$DRDataFlexReports
+    Set Popup_State to True
+    Set Locate_Mode to CENTER_ON_PARENT
+    Set Size to 35 248
+    Set Border_Style to Border_Dialog
+
+    Object oStatusBitmap is a BitmapContainer
+        Set Border_Style to Border_None
+        Set Bitmap to "DR32.bmp"
+        Set Size to 20 20
+        Set Location to 4 7
+    End_Object
+
+    Object oStatusText is a TextBox
+        Set Label to C_$DRLoadingReportPleaseWait
+        Set Size to 10 119
+        Set Location to 4 39
+        Set FontPointHeight to 12
+        Set FontWeight to 800
+    End_Object
+
+    Procedure SetStatusText String sText
+        Integer iVoid iTextSize iImageWidth iImageHeight
+        Handle hWnd
+        String sBitmapName
+
+        Set Label of oStatusText to sText
+        Get Text_Extent of oStatusText sText to iTextSize
+        Get Bitmap_Width of oStatusBitmap to iImageWidth
+        Get Bitmap_Height of oStatusBitmap to iImageHeight
+        If (iImageHeight <= 0 or iImageHeight <= 0) Begin
+            Get Bitmap of oStatusBitmap to sBitmapName
+            Error DFERR_FILE_NOT_FOUND sBitmapName
+        End
+        Set GuiSize to (Hi (iTextSize) + iImageHeight) (Low (iTextSize) + iImageWidth + 60)
+        Get Window_Handle of oStatusText to hWnd
+        If (hWnd <> 0) Begin
+            Move (InvalidateRect (hWnd, 0, False)) to iVoid
+            Move (UpdateWindow (hWnd)) to iVoid
+        End
+    End_Procedure
+End_Object

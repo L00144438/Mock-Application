@@ -1,0 +1,50 @@
+Use VdfBase.pkg
+
+Class cDRReportHelper is a cObject
+    // The AddFilter function expects a string. If you move a DateTime to a string the format
+    // is incorrect for SQL. With this function we can convert the DateTime to string in the appropriate
+    // format (this is yyyy-mm-dd hh:mm:ss)). The prefix zeroes are important.
+    { MethodType = Method }
+    Function DateTimeToString DateTime dtIn Returns String
+        String sDateTimeResult
+
+        Move (DateGetYear (dtIn)) to sDateTimeResult
+        Move (sDateTimeResult - '-' - (Right ('0' + String (DateGetMonth (dtIn)), 2))) to sDateTimeResult
+        Move (sDateTimeResult - '-' - (Right ('0' + String (DateGetDay (dtIn)), 2))) to sDateTimeResult
+        Move (sDateTimeResult * (Right ('0' + String (DateGetHour (dtIn)), 2))) to sDateTimeResult
+        Move (sDateTimeResult - ':' - (Right ('0' + String (DateGetMinute (dtIn)), 2))) to sDateTimeResult
+        Move (sDateTimeResult - ':' - (Right ('0' + String (DateGetSecond (dtIn)), 2))) to sDateTimeResult
+
+        Function_Return sDateTimeResult
+    End_Function
+
+    // The AddFilter function expects a string. If you move a Date to a string the format
+    // is incorrect for SQL. With this function we can convert the Date to string first in the appropriate
+    // format (this is yyyy-mm-dd). The prefix zero's are important.
+    { MethodType = Method }
+    Function DateToString Date dIn Returns String
+        String sDateResult
+        DateTime dtIn
+
+        Move dIn to dtIn
+        Move (DateGetYear (dtIn)) to sDateResult
+        Move (sDateResult - '-' - (Right ('0' + String (DateGetMonth (dtIn)), 2))) to sDateResult
+        Move (sDateResult - '-' - (Right ('0' + String (DateGetDay (dtIn)), 2))) to sDateResult
+
+        Function_Return sDateResult
+    End_Function
+
+    // Use this function to convert a time variable to string. Should be used for psParameterValue.
+    { MethodType = Method }
+    Function TimeToString Time tmIn Returns String
+        String sTimeResult
+        DateTime dtIn
+
+        Move tmIn to dtIn
+        Move (Right ('0' + String (DateGetHour (dtIN)), 2)) to sTimeResult
+        Move (sTimeResult + ':' + Right ('0' + String (DateGetMinute (dtIn)), 2)) to sTimeResult
+        Move (sTimeResult + ':' + Right ('0' + String (DateGetSecond (dtIn)), 2)) to sTimeResult
+
+        Function_Return sTimeResult
+    End_Function
+End_Class

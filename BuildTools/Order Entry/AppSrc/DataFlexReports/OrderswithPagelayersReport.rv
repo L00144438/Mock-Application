@@ -1,0 +1,461 @@
+Use Windows.pkg
+Use DFRptVw.pkg
+Use File_Dlg.Pkg
+Use cTextEdit.pkg
+Use cDbScrollingContainer.pkg
+
+Use cDRReport.pkg
+Use cDRPreview.pkg
+Use DRStatuspanel.dg
+
+Use cOrderHeaderDataDictionary.dd
+Use cInventoryDataDictionary.dd
+
+// This example shows how to make use of page layers in a report. With a page layer you simulate pre-printed forms or skip
+// pre-printed forms and make customer based backgrounds. In this example you can choose between a Data Access page layer, an
+// ACME inc page layer and no page layer and with or without a "approved" stamp. To show more of what page layers can do the
+// user can select between the English and Dutch language.
+
+// The user must either select a customer or an order to be used. When selecting a customer the result will be N orders with
+// the page layer selection. When selecting an order the result will be 1 order only. When selecting a customer and an order
+// make sure they belong to eachother.
+
+// The user can choose the sort order of the detail lines in the report.
+Deferred_View Activate_oOrderswithPagelayersReportView for ;
+Object oOrderswithPagelayersReportView is a ReportView
+    Set Label to "Orders with Pagelayers"
+    Set Border_Style to Border_Thick
+
+    Object oInventory_DD is a cInventoryDataDictionary
+    End_Object
+
+    Object oOrderHeader_DD is a cOrderHeaderDataDictionary
+    End_Object
+
+    Object oReport is a cDRReport
+        Set pbShowStatusPanel to True
+        Set phoStatusPanel to oDRStatusPanel
+        Set psReportName to "Orders with Pagelayers.dr"
+
+        Procedure OnInitializeReport
+            Integer eOutputDeviceMode
+
+            Forward Send OnInitializeReport
+
+            // Convert from the ReportView Output_Device_Mode to peOutputDestination
+            Get Output_Device_Mode to eOutputDeviceMode
+            Set peOutputDestination to eOutputDeviceMode
+
+            Send SetFilters
+            Send SetSortFields
+            Send SetParameters
+        End_Procedure
+
+        // In this routine we find the code that sets the parameter values. The values
+        // for the parameters can be retrieved from an input control or from own coding.
+        Procedure SetParameters
+            String sReportId sValue
+            Integer iParameter
+
+            Get psReportId to sReportId
+
+            Get_File_Path "CodeMast.dat" to sValue
+            Move (ExtractFilePath (sValue)) to sValue
+            Get ParameterIdByName sReportId "CodeMastPath" to iParameter
+            Set psParameterValue sReportId iParameter to sValue
+
+            Get SelectedPageLayerColor of oPageLayerColorParameterForm to sValue
+            Get ParameterIdByName sReportId "PageLayerNum" to iParameter
+            Set psParameterValue sReportId iParameter to sValue
+
+            Get SelectedLanguage of oPageLayerLanguageParameterForm to sValue
+            Get ParameterIdByName sReportId "Language" to iParameter
+            Set psParameterValue sReportId iParameter to sValue
+
+            Case Begin
+                Case (sValue = 'NL')
+                    Set piReportLanguage '' to LANG_DUTCH
+                    Case Break
+                Case Else
+                    Set piReportLanguage '' to LANG_DEFAULT
+                    Case Break
+            Case End
+
+            Get SelectedPageLayerNum of oCorporateLogoNumParameterForm to sValue
+            Get ParameterIdByName sReportId "HidePageLayers" to iParameter
+            Set psParameterValue sReportId iParameter to (sValue = "3")
+            If (sValue <> "3") Begin
+                Get ParameterIdByName sReportId "CorporateLogoNum" to iParameter
+                Set psParameterValue sReportId iParameter to sValue
+            End
+        End_Procedure
+
+        Procedure SetFilters
+            String sReportId
+            String sOrderHeaderOrderNumber
+            String sOrderHeaderCustomerNumber
+
+            Get psReportId to sReportId
+
+            // Remove all the defined filters from the report
+            Send RemoveAllFilters sReportId
+            
+            Get Value of oOrderHeaderOrderNumber to sOrderHeaderOrderNumber
+            If (sOrderHeaderOrderNumber <> "") Begin
+                Send AddFilter sReportId "{OrderHeader.Order_Number}" C_drEqual sOrderHeaderOrderNumber
+            End
+
+            Get Value of oOrderHeaderCustomerNumber to sOrderHeaderCustomerNumber
+            If (sOrderHeaderCustomerNumber <> "") Begin
+                Send AddFilter sReportId "{OrderHeader.Customer_Number}" C_drEqual sOrderHeaderCustomerNumber
+            End
+        End_Procedure
+
+        Procedure SetSortFields
+            String sReportId sSortField
+            
+            Get ReportOrdering of oSortOrderCombo to sSortField
+            Get psReportId to sReportId
+            Send RemoveAllRecordSortFields sReportId
+            Send AddRecordSortField sReportId sSortField C_drAscending
+        End_Procedure
+    End_Object
+
+    Object oParametersGroup Is A Group
+        Set Label to "Parameters"
+        Set Location to 5 5
+        Set Size to 55 182
+        Set peAnchors to anTopLeftRight
+
+        Object oPageLayerColorParameterForm is a ComboForm
+            Set Size to 12 111
+            Set Location to 10 66
+            Set Label_Justification_Mode to jMode_Left
+            Set Label_Col_Offset to 60
+            Set Label to "Color"
+            Set psToolTip to "Select a Schema"
+            Set Status_Help to 'Select a PageLayer Schema'
+            Set Entry_State to False
+            Set Combo_Sort_State to False
+            Set peAnchors to anTopLeftRight
+            Set piMaxSize to 12 200
+            
+            Function SelectedPageLayerColor Returns Integer
+                String sValue
+                Integer iItem
+                
+                Get Value to sValue
+                Get Combo_Item_Matching sValue to iItem
+                Increment iItem
+                
+                Function_Return iItem
+            End_Function
+            
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item "Gray Approved"
+                Send Combo_Add_Item "Gray"
+            End_Procedure
+        End_Object
+
+        Object oPageLayerLanguageParameterForm is a ComboForm
+            Set Size to 12 111
+            Set Location to 24 66
+            Set Label_Justification_Mode to jMode_Left
+            Set Label_Col_Offset to 60
+            Set Label to "Language"
+            Set psToolTip to "Select a Language"
+            Set Status_Help to 'Select a Language'
+            Set Entry_State to False
+            Set Combo_Sort_State to False
+            Set peAnchors to anTopLeftRight
+            Set piMaxSize to 12 200
+            
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item "English"
+                Send Combo_Add_Item "Dutch"
+            End_Procedure
+            
+            Function SelectedLanguage Returns String
+                String sValue
+                Integer iItem
+                
+                Get Value to sValue
+                Get Combo_Item_Matching sValue to iItem
+                Case Begin
+                    Case (iItem = 0)
+                        Move 'EN' to sValue
+                        Case Break
+                    Case (iItem = 1)
+                        Move 'NL' to sValue
+                        Case Break
+                Case End
+                
+                Function_Return sValue
+            End_Function
+        End_Object
+
+        Object oCorporateLogoNumParameterForm is a ComboForm
+            Set Size to 12 111
+            Set Location to 38 66
+            Set Label_Justification_Mode to jMode_Left
+            Set Label_Col_Offset to 60
+            Set Label to "Corporate Logo"
+            Set psToolTip to "Select Corporate Logo"
+            Set Status_Help to 'Select Corporate Logo'
+            Set Entry_State to False
+            Set Combo_Sort_State to False
+            Set peAnchors to anTopLeftRight
+            Set piMaxSize to 12 200
+            
+            Procedure OnChange
+                String sValue
+                Integer iItem
+                
+                Get Value to sValue
+                Get Combo_Item_Matching sValue to iItem
+                Set Enabled_State of oPageLayerColorParameterForm to (iItem <> 2)
+            End_Procedure
+            
+            Function SelectedPageLayerNum Returns Integer
+                String sValue
+                Integer iItem
+                
+                Get Value to sValue
+                Get Combo_Item_Matching sValue to iItem
+                
+                Function_Return (iItem + 1)
+            End_Function
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item "Data Access Europe"
+                Send Combo_Add_Item "ACME Inc"
+                Send Combo_Add_Item "None (Use of Preprinted Sheets)"
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oOrderHeaderOrderNumber is a Form
+        Set Size to 12 44
+        Set Location to 62 70
+        Set piMaxSize to 12 77
+        Set piMinSize to 12 22
+        Set Label_Justification_Mode to jMode_Left
+        Set Label_Col_Offset to 64
+        Set Label to "Order Number"
+        Set Status_Help to "Order Number"
+        Set psToolTip to "Select Order Number"
+        Set Numeric_Mask 0 to 6 0
+        Set Prompt_Button_Mode to pb_PromptOn
+        Set Prompt_Object to OrderHeader_SL
+        
+        Procedure CopyPromptValue Handle hoPrompt
+            RowID[] riOrderHeader
+            Boolean bFound
+
+            Get SelectedRowIds of hoPrompt to riOrderHeader
+            Move (FindByRowID (OrderHeader.File_Number, riOrderHeader[0])) to bFound
+            Set Value to OrderHeader.Order_Number
+        End_Procedure
+
+        // This procedure is called if peUpdateMode is not equal to umPromptNonInvoking, we use the
+        // SelectBestColumn function to retrieve the column for the passed file and field number. After retrieving
+        // the column we setup the list.
+        Procedure Prompt_CallBack Integer hoPrompt
+            Integer iColumn
+            Handle hoColumn
+            Boolean bIsVisible
+
+            Get SelectBestColumn Of hoPrompt File_Field OrderHeader.Order_Number to iColumn
+            If (iColumn <> -1) Begin
+                Get ColumnObject of hoPrompt iColumn to hoColumn
+                Get pbVisible of hoColumn to bIsVisible
+                If (not (bIsVisible)) Begin
+                    Set piInitialColumn of hoPrompt to -2
+                End
+                Set piUpdateColumn of hoPrompt to iColumn
+                Set peUpdateMode of hoPrompt to umPromptValue
+            End
+            Else Begin
+                Set phmPromptUpdateCallback of hoPrompt to CopyPromptValue
+                Set peUpdateMode of hoPrompt to -1
+            End
+        End_Procedure
+    End_Object
+
+    Object oOrderHeaderCustomerNumber Is A Form
+        Set Size to 12 44
+        Set Location to 76 70
+        Set piMaxSize to 12 77
+        Set piMinSize to 12 22
+        Set Label_Justification_Mode to jMode_Left
+        Set Label_Col_Offset to 64
+        Set Label to "Customer Number"
+        Set Status_Help to "Enter a selection value."
+        Set psToolTip to "Select Customer Number"
+        Set Numeric_Mask 0 to 6 0
+        Set Prompt_Button_Mode to pb_PromptOn
+        Set Prompt_Object to Customer_sl
+        
+        Procedure CopyPromptValue Handle hoPrompt
+            RowID[] riCustomer
+            Boolean bFound
+
+            Get SelectedRowIds of hoPrompt to riCustomer
+            Move (FindByRowID (Customer.File_Number, riCustomer[0])) to bFound
+            Set Value to Customer.Customer_Number
+        End_Procedure
+
+        // This procedure is called if peUpdateMode is not equal to umPromptNonInvoking, we use the
+        // SelectBestColumn function to retrieve the column for the passed file and field number. After retrieving
+        // the column we setup the list.
+        Procedure Prompt_CallBack Integer hoPrompt
+            Integer iColumn
+            Handle hoColumn
+            Boolean bIsVisible
+
+            Get SelectBestColumn of hoPrompt File_Field Customer.Customer_Number to iColumn
+            If (iColumn <> -1) Begin
+                Get ColumnObject of hoPrompt iColumn to hoColumn
+                Get pbVisible of hoColumn to bIsVisible
+                If (not (bIsVisible)) Begin
+                    Set piInitialColumn of hoPrompt to -2
+                End
+                Set piUpdateColumn of hoPrompt to iColumn
+                Set peUpdateMode of hoPrompt to umPromptValue
+            End
+            Else Begin
+                Set phmPromptUpdateCallback of hoPrompt to CopyPromptValue
+                Set peUpdateMode of hoPrompt to -1
+            End
+        End_Procedure
+    End_Object
+
+    Object oSortOrderCombo is a ComboForm
+        Set Size to 12 111
+        Set Location to 90 70
+        Set Label_Justification_Mode to jMode_Left
+        Set Label_Col_Offset to 64
+        Set Label to "Order by"
+        Set psToolTip to "Select Sorting"
+        Set Status_Help to 'Select Sorting'
+        Set Entry_State to False
+        Set Combo_Sort_State to False
+        Set peAnchors to anTopLeftRight
+        Set piMaxSize to 12 200
+        
+        Function ReportOrdering Returns String
+            String sValue
+            Integer iItem
+            
+            Get Value to sValue
+            Get Combo_Item_Matching sValue to iItem
+            Case Begin
+                Case (iItem = 0)
+                    Move "{OrderDetail.Detail_Number}" to sValue
+                    Case Break
+                Case (iItem = 1)
+                    Move "{Inventory.Item_Id}" to sValue
+                    Case Break
+                Case (iItem = 2)
+                    Move "{Inventory.Description}" to sValue
+                    Case Break
+                Case (iItem = 3)
+                    Move "{OrderDetail.Qty_Ordered}" to sValue
+                    Case Break
+                Case (iItem = 4)
+                    Move "{OrderDetail.Extended_Price}" to sValue
+                    Case Break
+                Case (iItem = 5)
+                    Move "{OrderDetail.Price}" to sValue
+                    Case Break
+            Case End
+            
+            Function_Return sValue
+        End_Function
+        
+        Procedure Combo_Fill_List
+            Send Combo_Add_Item "Detail Number"
+            Send Combo_Add_Item "Inventory Item ID"
+            Send Combo_Add_Item "Inventory Description"
+            Send Combo_Add_Item "Quantity Ordered"
+            Send Combo_Add_Item "Extended Price"
+            Send Combo_Add_Item "Price"
+        End_Procedure
+    End_Object
+
+    Object oDestinationGroup Is A RadioGroup
+        Set Label to "Output destination"
+        Set Location to 104 5
+        Set Size to 46 77
+
+        Object oScreenRadio Is A Radio
+            Set Label to "Preview"
+            Set Size to 10 60
+            Set Location to 10 6
+            Set Status_Help to "Print the report to screen"
+        End_Object
+
+        Object oPrinterRadio Is A Radio
+            Set Label to "Printer"
+            Set Size to 10 60
+            Set Location to 22 6
+            Set Status_Help to "Prints the report to printer"
+        End_Object
+
+        Object oExportRadio Is A Radio
+            Set Label to "Export"
+            Set Size to 10 60
+            Set Location to 34 6
+            Set Status_Help to "Outputs the report to disk file (PDF, CSV, Image, HTML, Excel, RTF)"
+        End_Object
+
+        Procedure Notify_Select_State Integer iNewItem Integer iOldItem
+            Forward Send Notify_Select_State iNewItem iOldItem
+
+            Case Begin
+                Case (iNewItem = 0)
+                    Set Output_Device_Mode to PRINT_TO_WINDOW
+                    Case Break
+                Case (iNewItem = 1)
+                    Set Output_Device_Mode to PRINT_TO_PRINTER
+                    Case Break
+                Case (iNewItem = 2)
+                    Set Output_Device_Mode to PRINT_TO_FILE
+                    Case Break
+            Case End
+        End_Procedure
+    End_Object
+
+    Object oPrintButton Is A Button
+        Set Label to "&Print"
+        Set Status_Help to "Print the report"
+        Set Size to 14 50
+        Set Location to 152 84
+        Set Default_State to True
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Send RunReport Of oReport
+        End_Procedure
+    End_Object
+
+    Object oCancelButton Is A Button
+        Set Label to "&Cancel"
+        Set Size to 14 50
+        Set Location to 152 139
+        Set Status_Help to "Cancel this Panel"
+        Set peAnchors to anBottomRight
+
+        // This procedure closes the report view.
+        Procedure OnClick
+            Send Request_Cancel
+        End_Procedure
+    End_Object
+
+    On_Key Key_Alt+Key_C Send KeyAction of oCancelButton
+    On_Key Key_Alt+Key_P Send KeyAction of oPrintButton
+
+    Set Location to 6 6
+    Set Size to 168 194
+    Set piMinSize to 168 159
+Cd_End_Object

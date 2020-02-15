@@ -1,0 +1,1433 @@
+Use FlexCom20.pkg
+
+Define C_drDatabaseTypes for Integer
+    Define C_drDF for 1
+    Define C_drODBC for 2
+    Define C_drRDS for 4
+    Define C_drSQLite for 7
+
+Define C_drDatabaseSubTypes for Integer
+    Define C_drStandard for 0
+    Define C_drSQL for 1
+    Define C_drSP for 2
+
+Define C_drHitTests for Integer
+    Define C_drNowhere for 1
+    Define C_drSection for 2
+    Define C_drObject for 3
+
+Define C_drStatistics for Integer
+    Define C_drReportOpen for 1
+    Define C_drExecutionPlan for 2
+    Define C_drExecution for 3
+    Define C_drReadRecords for 4
+    Define C_drSortRecords for 5
+    Define C_drCountPages for 6
+    Define C_drFormatPages for 7
+
+Define C_drSortOrders for Integer
+    Define C_drAscending for 1
+    Define C_drDescending for 2
+
+Define C_drOperators for Integer
+    Define C_drNone for 0
+    Define C_drEqual for 1
+    Define C_drNotEqual for 2
+    Define C_drGreaterThan for 3
+    Define C_drGreaterThanOrEqual for 4
+    Define C_drLessThan for 5
+    Define C_drLessThanOrEqual for 6
+
+Define C_drExportFormats for Integer
+    Define C_drPDF for 0
+    Define C_drCSV for 1
+    Define C_drImage for 2
+    Define C_drHTML for 3
+    Define C_drXLS for 4
+    Define C_drRTF for 5
+
+Define C_drImageFormats for Integer
+    Define C_drJPEG for 1
+    Define C_drGIF for 2
+    Define C_drTIFF for 3
+    Define C_drPNG for 4
+
+Define C_drPDFPageModes for Integer
+    Define C_drNormal for 0
+    Define C_drOutline for 1
+    Define C_drThumbs for 2
+    Define C_drFullScreen for 3
+
+Define C_drPDFTypes for Integer
+    Define C_drPDFNormal for 0
+    Define C_drPDFA for 1
+
+Define C_drPDFImageQualities for Integer
+    Define C_drLow for 0
+    Define C_drHigh for 1
+
+Define C_drXLSVersions for Integer
+    Define C_drXLS2003 for 0
+    Define C_drXLS2007 for 1
+
+Define C_drXLSNewSheetOptions for Integer
+    Define C_drNoSheets for 0
+    Define C_drSheetsPage for 1
+
+Struct drPDFExportOptions
+    Integer iPageMode
+    Integer iPDFType
+    String sOwnerPassword
+    String sUserPassword
+    Integer iImageQuality
+    Integer bAllPages
+    Integer iPage
+End_Struct
+
+Struct drCSVExportOptions
+    String cFieldDelimiter
+    String cFieldSeparator
+    Integer bExportPageSections
+    Integer bExportReportSections
+    Integer bExportGroupSections
+    Integer bAllPages
+    Integer iPage
+End_Struct
+
+Struct drHTMLExportOptions
+    Integer bMultiPage
+    Integer iPage
+End_Struct
+
+Struct drImageExportOptions
+    Integer iImageType
+    Integer bMultiPage
+    Integer iPage
+End_Struct
+
+Struct drXLSExportOptions
+    Integer iXLSVersion
+    Integer iNewSheet
+    Integer iColumnWidth
+    Integer bExportDataOnly
+    Integer bExportPageSections
+    Integer bExportReportSections
+    Integer bExportGroupSections
+    Integer bExportWithFormatting
+    Integer bAllPages
+    Integer iPage
+End_Struct
+
+Struct drRTFExportOptions
+    Integer bAllPages
+    Integer iPage
+End_Struct
+
+// CLSID: {D13BDC38-2343-4D98-92B2-98C6D16E2BE0}
+// Dispatch interface for DataFlex Reports 2018 Developer Edition
+Class cCom_DataFlexReportsAPI is a Mixin
+
+    // Preview the specified page in the report
+    { MethodType = Property Visibility = Private }
+    Function ComPreviewCurrentPage Returns Integer
+        Integer retVal
+        Get ComProperty of (phDispatchDriver(Self)) 54 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Preview the specified page in the report
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComPreviewCurrentPage Integer value
+        Set ComProperty of (phDispatchDriver(Self)) 54 OLE_VT_I4 to value
+    End_Procedure
+
+    // Sets the zoom factor
+    { MethodType = Property Visibility = Private }
+    Function ComPreviewZoom Returns Integer
+        Integer retVal
+        Get ComProperty of (phDispatchDriver(Self)) 55 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Sets the zoom factor
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComPreviewZoom Integer value
+        Set ComProperty of (phDispatchDriver(Self)) 55 OLE_VT_I4 to value
+    End_Procedure
+
+    // Open a report
+    { Visibility = Private }
+    Function ComReportOpen String llReportName Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llReportName
+        Get InvokeComMethod of hDispatchDriver 1 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Close the report
+    { MethodType = Method Visibility = Private }
+    Procedure ComReportClose String llsId
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send InvokeComMethod to hDispatchDriver 2 OLE_VT_VOID
+    End_Procedure
+
+    // Preview the report
+    { MethodType = Method Visibility = Private }
+    Procedure ComReportPreview String llsId
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send InvokeComMethod to hDispatchDriver 4 OLE_VT_VOID
+    End_Procedure
+
+    // Refresh the report
+    { MethodType = Method Visibility = Private }
+    Procedure ComReportRefresh String llsId
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send InvokeComMethod to hDispatchDriver 5 OLE_VT_VOID
+    End_Procedure
+
+    // Prints the report
+    { MethodType = Method Visibility = Private }
+    Procedure ComReportPrint String llsId Integer llhPrintDlg
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llhPrintDlg
+        Send InvokeComMethod to hDispatchDriver 6 OLE_VT_VOID
+    End_Procedure
+
+    // Export the report
+    { MethodType = Method Visibility = Private }
+    Procedure ComReportExport String llsId C_drExportFormats lliType String llFileName
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliType
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llFileName
+        Send InvokeComMethod to hDispatchDriver 7 OLE_VT_VOID
+    End_Procedure
+
+    // Cancels the report output
+    { MethodType = Method Visibility = Private }
+    Procedure ComReportCancel String llsId
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send InvokeComMethod to hDispatchDriver 8 OLE_VT_VOID
+    End_Procedure
+
+    // Returns the SQL query used in the report
+    { MethodType = Method Visibility = Private }
+    Function ComReportQuery String llsId Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 9 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the page count
+    { MethodType = Method Visibility = Private }
+    Function ComReportPageCount String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 10 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the subreport name
+    { MethodType = Method Visibility = Private }
+    Function ComReportName String llsId Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 11 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the language in use
+    { MethodType = Property Visibility = Private }
+    Function ComReportLanguage String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 12 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the language in use
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComReportLanguage String llsId Integer value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Set ComProperty of hDispatchDriver 12 OLE_VT_I4 to value
+    End_Procedure
+
+    // Returns a list of supported languages
+    { Visibility = Private }
+    Function ComReportLanguageList String llsId Returns Variant
+        Handle hDispatchDriver
+        Variant retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 13 OLE_VT_VARIANT to retVal
+        Function_Return retVal
+    End_Function
+
+    // Preview the report (HTML)
+    { MethodType = Method Visibility = Private }
+    Function ComReportHTMLPreview String llsId Integer lliArgSize Integer lliPage Returns Variant
+        Handle hDispatchDriver
+        Variant retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliArgSize
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliPage
+        Get InvokeComMethod of hDispatchDriver 14 OLE_VT_VARIANT to retVal
+        Function_Return retVal
+    End_Function
+
+    // Sets the PDF export options
+    { MethodType = Method Visibility = Private }
+    Procedure ComPDFExportOptions String llsId Integer llpData
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llpData
+        Send InvokeComMethod to hDispatchDriver 15 OLE_VT_VOID
+    End_Procedure
+
+    // Sets the CSV export options
+    { MethodType = Method Visibility = Private }
+    Procedure ComCSVExportOptions String llsId Integer llpData
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llpData
+        Send InvokeComMethod to hDispatchDriver 16 OLE_VT_VOID
+    End_Procedure
+
+    // Sets the HTML export options
+    { MethodType = Method Visibility = Private }
+    Procedure ComHTMLExportOptions String llsId Integer llpData
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llpData
+        Send InvokeComMethod to hDispatchDriver 17 OLE_VT_VOID
+    End_Procedure
+
+    // Sets the image export options
+    { MethodType = Method Visibility = Private }
+    Procedure ComImageExportOptions String llsId Integer llpData
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llpData
+        Send InvokeComMethod to hDispatchDriver 18 OLE_VT_VOID
+    End_Procedure
+
+    // Sets the XLS export options
+    { MethodType = Method Visibility = Private }
+    Procedure ComXLSExportOptions String llsId Integer llpData
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llpData
+        Send InvokeComMethod to hDispatchDriver 19 OLE_VT_VOID
+    End_Procedure
+
+    // Sets the RTF export options
+    { MethodType = Method Visibility = Private }
+    Procedure ComRTFExportOptions String llsId Integer llpData
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llpData
+        Send InvokeComMethod to hDispatchDriver 20 OLE_VT_VOID
+    End_Procedure
+
+    // Returns the paper orientation
+    { MethodType = Method Visibility = Private }
+    Function ComPaperOrientation String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 28 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the paper size
+    { MethodType = Method Visibility = Private }
+    Function ComPaperSize String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 29 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the paper left margin
+    { MethodType = Property Visibility = Private }
+    Function ComPaperMarginLeft String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 130 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the paper left margin
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComPaperMarginLeft String llsId Integer value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Set ComProperty of hDispatchDriver 130 OLE_VT_I4 to value
+    End_Procedure
+
+    // Returns the paper top margin
+    { MethodType = Property Visibility = Private }
+    Function ComPaperMarginTop String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 131 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the paper top margin
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComPaperMarginTop String llsId Integer value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Set ComProperty of hDispatchDriver 131 OLE_VT_I4 to value
+    End_Procedure
+
+    // Returns the paper right margin
+    { MethodType = Property Visibility = Private }
+    Function ComPaperMarginRight String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 132 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the paper right margin
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComPaperMarginRight String llsId Integer value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Set ComProperty of hDispatchDriver 132 OLE_VT_I4 to value
+    End_Procedure
+
+    // Returns the paper bottom margin
+    { MethodType = Property Visibility = Private }
+    Function ComPaperMarginBottom String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 133 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the paper bottom margin
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComPaperMarginBottom String llsId Integer value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Set ComProperty of hDispatchDriver 133 OLE_VT_I4 to value
+    End_Procedure
+
+    // Preview the first page in the report
+    { MethodType = Method Visibility = Private }
+    Procedure ComPreviewFirstPage
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send InvokeComMethod to hDispatchDriver 50 OLE_VT_VOID
+    End_Procedure
+
+    // Preview the previous page in the report
+    { MethodType = Method Visibility = Private }
+    Procedure ComPreviewPreviousPage
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send InvokeComMethod to hDispatchDriver 51 OLE_VT_VOID
+    End_Procedure
+
+    // Preview the next page in the report
+    { MethodType = Method Visibility = Private }
+    Procedure ComPreviewNextPage
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send InvokeComMethod to hDispatchDriver 52 OLE_VT_VOID
+    End_Procedure
+
+    // Preview the last page in the report
+    { MethodType = Method Visibility = Private }
+    Procedure ComPreviewLastPage
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send InvokeComMethod to hDispatchDriver 53 OLE_VT_VOID
+    End_Procedure
+
+    // Returns the preview window handle
+    { MethodType = Property Visibility = Private }
+    Function ComPreviewHWND Returns Handle
+        Handle hDispatchDriver hWnd
+        Get phDispatchDriver to hDispatchDriver
+        Get InvokeComMethod of hDispatchDriver 56 OLE_VT_I4 to hWnd
+        Function_Return hWnd
+    End_Function
+
+    // Returns the preview window handle
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComPreviewHWND Handle hWnd
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Set ComProperty of hDispatchDriver 56 OLE_VT_I4 to hWnd
+    End_Procedure
+
+    // Find text in the preview window
+    { MethodType = Method Visibility = Private }
+    Function ComPreviewFind String llsString Integer llbDown Integer llbWholeWord Integer llbMatchCase Returns Integer
+        Handle hDispatchDriver
+        Integer Retval
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 4
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsString
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llbDown
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llbWholeWord
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llbMatchCase
+        Get InvokeComMethod of hDispatchDriver 57 OLE_VT_I4 to Retval
+        Function_Return Retval
+    End_Function
+
+    // Scroll the preview window vertically
+    { MethodType = Method Visibility = Private }
+    Procedure ComPreviewVScroll Integer lliType Integer lliPos
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliType
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliPos
+        Send InvokeComMethod to hDispatchDriver 58 OLE_VT_VOID
+    End_Procedure
+
+    // Scroll the preview window horizontally
+    { MethodType = Method Visibility = Private }
+    Procedure ComPreviewHScroll Integer lliType Integer lliPos
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliType
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliPos
+        Send InvokeComMethod to hDispatchDriver 59 OLE_VT_VOID
+    End_Procedure
+
+    // Paint the preview window
+    { MethodType = Method Visibility = Private }
+    Procedure ComPreviewPaint Integer llbRedraw
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llbRedraw
+        Send InvokeComMethod to hDispatchDriver 160 OLE_VT_VOID
+    End_Procedure
+
+    // Canvas color
+    { MethodType = Property Visibility = Private }
+    Function ComPreviewCanvasColor Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Get InvokeComMethod of hDispatchDriver 161 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Canvas color
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComPreviewCanvasColor Integer value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Set ComProperty of hDispatchDriver 161 OLE_VT_I4 to value
+    End_Procedure
+
+    // Waiting GIF
+    { MethodType = Property Visibility = Private }
+    Function ComPreviewWaitingGIF Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Get InvokeComMethod of hDispatchDriver 162 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Waiting GIF
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComPreviewWaitingGIF String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Set ComProperty of hDispatchDriver 162 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Reset find in preview window
+    { MethodType = Method Visibility = Private }
+    Procedure ComPreviewFindReset
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send InvokeComMethod to hDispatchDriver 163 OLE_VT_VOID
+    End_Procedure
+
+    // Returns the database type
+    { MethodType = Method Visibility = Private }
+    Function ComDatabaseType String llsId Returns C_drDatabaseTypes
+        Handle hDispatchDriver
+        C_drDatabaseTypes retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 60 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the database connection string
+    { MethodType = Property Visibility = Private }
+    Function ComDatabaseConnection String llsId Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 61 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the database connection string
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComDatabaseConnection String llsId String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Set ComProperty of hDispatchDriver 61 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Returns the database name
+    { MethodType = Property Visibility = Private }
+    Function ComDatabaseName String llsId Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 62 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the database name
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComDatabaseName String llsId String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Set ComProperty of hDispatchDriver 62 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Returns the number of tables in the report
+    { MethodType = Method Visibility = Private }
+    Function ComTableCount String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 63 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the name of a table
+    { MethodType = Property Visibility = Private }
+    Function ComTableName String llsId Integer lliTable Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Get InvokeComMethod of hDispatchDriver 64 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the name of a table
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComTableName String llsId Integer lliTable String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Set ComProperty of hDispatchDriver 64 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Returns the schema name of a table
+    { MethodType = Property Visibility = Private }
+    Function ComTableSchema String llsId Integer lliTable Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Get InvokeComMethod of hDispatchDriver 65 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the schema name of a table
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComTableSchema String llsId Integer lliTable String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Set ComProperty of hDispatchDriver 65 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Returns the alias name of a table
+    { MethodType = Method Visibility = Private }
+    Function ComTableNameAlias String llsId Integer lliTable Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Get InvokeComMethod of hDispatchDriver 66 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Sets the table data
+    { MethodType = Method Visibility = Private }
+    Procedure ComTableData String llsId Integer lliTable Variant[] llpData
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Send DefineParam to hDispatchDriver (OLE_VT_ARRAY ior OLE_VT_VARIANT) llpData
+        Send InvokeComMethod to hDispatchDriver 67 OLE_VT_VOID
+    End_Procedure
+
+    // Returns the number of columns in a table
+    { MethodType = Method Visibility = Private }
+    Function ComColumnCount String llsId Integer lliTable Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Get InvokeComMethod of hDispatchDriver 30 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the column name
+    { MethodType = Method Visibility = Private }
+    Function ComColumnName String llsId Integer lliTable Integer lliColumn Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliColumn
+        Get InvokeComMethod of hDispatchDriver 31 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the column type
+    { MethodType = Method Visibility = Private }
+    Function ComColumnType String llsId Integer lliTable Integer lliColumn Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliColumn
+        Get InvokeComMethod of hDispatchDriver 32 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the column length
+    { MethodType = Method Visibility = Private }
+    Function ComColumnLength String llsId Integer lliTable Integer lliColumn Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliColumn
+        Get InvokeComMethod of hDispatchDriver 33 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the column precision
+    { MethodType = Method Visibility = Private }
+    Function ComColumnPrecision String llsId Integer lliTable Integer lliColumn Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliColumn
+        Get InvokeComMethod of hDispatchDriver 34 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the column main index
+    { MethodType = Method Visibility = Private }
+    Function ComColumnIndex String llsId Integer lliTable Integer lliColumn Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliTable
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliColumn
+        Get InvokeComMethod of hDispatchDriver 35 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the filter function
+    { MethodType = Property Visibility = Private }
+    Function ComFilterFunction String llsId Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 70 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the filter function
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComFilterFunction String llsId String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Set ComProperty of hDispatchDriver 70 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Checks the function for errors
+    { MethodType = Method Visibility = Private }
+    Function ComFunctionCheck String llsId String llsFunction Integer lliIndex Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsFunction
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliIndex
+        Get InvokeComMethod of hDispatchDriver 80 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the data type of a function
+    { MethodType = Method Visibility = Private }
+    Function ComFunctionType String llsId String llsFunction Integer lliIndex Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsFunction
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliIndex
+        Get InvokeComMethod of hDispatchDriver 81 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the length of a function
+    { MethodType = Method Visibility = Private }
+    Function ComFunctionLength String llsId String llsFunction Integer lliIndex Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsFunction
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliIndex
+        Get InvokeComMethod of hDispatchDriver 82 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns if a symbol is used in any function
+    { MethodType = Method Visibility = Private }
+    Function ComFunctionIsSymbolUsed String llsId String llsSymbol Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsSymbol
+        Get InvokeComMethod of hDispatchDriver 86 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns if a function is empty
+    { MethodType = Method Visibility = Private }
+    Function ComFunctionIsEmpty String llsId String llsFunction Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsFunction
+        Get InvokeComMethod of hDispatchDriver 87 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the number of functions
+    { MethodType = Method Visibility = Private }
+    Function ComFunctionCount String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 83 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the function name
+    { MethodType = Property Visibility = Private }
+    Function ComFunctionName String llsId Integer lliFunction Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFunction
+        Get InvokeComMethod of hDispatchDriver 84 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the function name
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComFunctionName String llsId Integer lliFunction String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFunction
+        Set ComProperty of hDispatchDriver 84 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Returns the function
+    { MethodType = Property Visibility = Private }
+    Function ComFunction String llsId Integer lliFunction Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFunction
+        Get InvokeComMethod of hDispatchDriver 85 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the function
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComFunction String llsId Integer lliFunction String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFunction
+        Set ComProperty of hDispatchDriver 85 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Finds a function by name
+    { MethodType = Method Visibility = Private }
+    Function ComFunctionByName String llsId String llsFunction Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsFunction
+        Get InvokeComMethod of hDispatchDriver 88 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the number of subreports
+    { MethodType = Method Visibility = Private }
+    Function ComSubreportCount String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 91 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the subreport id
+    { MethodType = Method Visibility = Private }
+    Function ComSubreportId String llsId Integer lliSubreport Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliSubreport
+        Get InvokeComMethod of hDispatchDriver 92 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the number of record sorts
+    { MethodType = Method Visibility = Private }
+    Function ComRecordSortCount String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 95 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the record sort field
+    { MethodType = Property Visibility = Private }
+    Function ComRecordSortField String llsId Integer lliSort Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliSort
+        Get InvokeComMethod of hDispatchDriver 96 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the record sort field
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComRecordSortField String llsId Integer lliSort String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliSort
+        Set ComProperty of hDispatchDriver 96 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Returns the record sort order
+    { MethodType = Property Visibility = Private }
+    Function ComRecordSortOrder String llsId Integer lliSort Returns C_drSortOrders
+        Handle hDispatchDriver
+        C_drSortOrders retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliSort
+        Get InvokeComMethod of hDispatchDriver 97 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the record sort order
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComRecordSortOrder String llsId Integer lliSort C_drSortOrders value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliSort
+        Set ComProperty of hDispatchDriver 97 OLE_VT_I4 to value
+    End_Procedure
+
+    // Deletes a record sort
+    { MethodType = Method Visibility = Private }
+    Procedure ComRecordSortDelete String llsId Integer lliSort
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliSort
+        Send InvokeComMethod to hDispatchDriver 98 OLE_VT_VOID
+    End_Procedure
+
+    // Adds a record sort
+    { MethodType = Method Visibility = Private }
+    Procedure ComRecordSortAdd String llsId String llsField C_drSortOrders lliOrder
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsField
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliOrder
+        Send InvokeComMethod to hDispatchDriver 99 OLE_VT_VOID
+    End_Procedure
+
+    // Returns the number of record filters
+    { MethodType = Method Visibility = Private }
+    Function ComRecordFilterCount String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 72 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the record filter field
+    { MethodType = Property Visibility = Private }
+    Function ComRecordFilterField String llsId Integer lliFilter Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFilter
+        Get InvokeComMethod of hDispatchDriver 73 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the record filter field
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComRecordFilterField String llsId Integer lliFilter String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFilter
+        Set ComProperty of hDispatchDriver 73 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Returns the record filter operator
+    { MethodType = Property Visibility = Private }
+    Function ComRecordFilterOperator String llsId Integer lliFilter Returns C_drOperators
+        Handle hDispatchDriver
+        C_drOperators retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFilter
+        Get InvokeComMethod of hDispatchDriver 74 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the record filter operator
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComRecordFilterOperator String llsId Integer lliFilter C_drOperators value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFilter
+        Set ComProperty of hDispatchDriver 74 OLE_VT_I4 to value
+    End_Procedure
+
+    // Returns the record filter value
+    { MethodType = Property Visibility = Private }
+    Function ComRecordFilterValue String llsId Integer lliFilter Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFilter
+        Get InvokeComMethod of hDispatchDriver 75 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the record filter value
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComRecordFilterValue String llsId Integer lliFilter String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFilter
+        Set ComProperty of hDispatchDriver 75 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Deletes a record filter
+    { MethodType = Method Visibility = Private }
+    Procedure ComRecordFilterDelete String llsId Integer lliFilter
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliFilter
+        Send InvokeComMethod to hDispatchDriver 76 OLE_VT_VOID
+    End_Procedure
+
+    // Adds a record filter
+    { MethodType = Method Visibility = Private }
+    Procedure ComRecordFilterAdd String llsId String llsField C_drOperators lliOperator String llsValue
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 4
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsField
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliOperator
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsValue
+        Send InvokeComMethod to hDispatchDriver 77 OLE_VT_VOID
+    End_Procedure
+
+    // Returns the number of parameters
+    { MethodType = Method Visibility = Private }
+    Function ComParameterCount String llsId Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 1
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Get InvokeComMethod of hDispatchDriver 40 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the parameter name
+    { MethodType = Method Visibility = Private }
+    Function ComParameterName String llsId Integer lliParam Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliParam
+        Get InvokeComMethod of hDispatchDriver 41 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the parameter type
+    { MethodType = Method Visibility = Private }
+    Function ComParameterType String llsId Integer lliParam Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliParam
+        Get InvokeComMethod of hDispatchDriver 42 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the parameter length
+    { MethodType = Method Visibility = Private }
+    Function ComParameterLength String llsId Integer lliParam Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliParam
+        Get InvokeComMethod of hDispatchDriver 43 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the parameter precision
+    { MethodType = Method Visibility = Private }
+    Function ComParameterPrecision String llsId Integer lliParam Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliParam
+        Get InvokeComMethod of hDispatchDriver 44 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the parameter value
+    { MethodType = Property Visibility = Private }
+    Function ComParameterValue String llsId Integer lliParam Returns String
+        Handle hDispatchDriver
+        String retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliParam
+        Get InvokeComMethod of hDispatchDriver 45 OLE_VT_BSTR to retVal
+        Function_Return retVal
+    End_Function
+
+    // Returns the parameter value
+    { MethodType = Property Visibility = Private }
+    Procedure Set ComParameterValue String llsId Integer lliParam String value
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_I4 lliParam
+        Set ComProperty of hDispatchDriver 45 OLE_VT_BSTR to value
+    End_Procedure
+
+    // Finds a parameter by name
+    { MethodType = Method Visibility = Private }
+    Function ComParameterByName String llsId String llsParameter Returns Integer
+        Handle hDispatchDriver
+        Integer retVal
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 2
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsId
+        Send DefineParam to hDispatchDriver OLE_VT_BSTR llsParameter
+        Get InvokeComMethod of hDispatchDriver 46 OLE_VT_I4 to retVal
+        Function_Return retVal
+    End_Function
+
+    // Previews a chart object
+    { MethodType = Method Visibility = Private }
+    Procedure ComChartPreview Integer llhDC Integer llpData Integer llpRect
+        Handle hDispatchDriver
+        Get phDispatchDriver to hDispatchDriver
+        Send PrepareParams to hDispatchDriver 3
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llhDC
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llpData
+        Send DefineParam to hDispatchDriver OLE_VT_I4 llpRect
+        Send InvokeComMethod to hDispatchDriver 151 OLE_VT_VOID
+    End_Procedure
+End_Class
+
+// CLSID: {2D492BA4-5BC0-4F66-B85F-90BFD7B1B1DC}
+// Event interface for DataFlex Reports 2018 Developer Edition
+Class cCom_DataFlexReportsAPIEvents is a Mixin
+    { MethodType = Event Visibility = Private }
+    Procedure OnComReportError Integer iError String sError
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComReportInfo Integer iError String sError
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComFunctionError String sReportId Integer lliFunctionId String sFunction String sError Integer iLine Integer iCol String sToken
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComReportStatistics C_drStatistics iType Integer iValue
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComProgressRecordsRead Integer iRecords
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComProgressCountPage Integer iPage
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComProgressFormatPage Integer iPage Integer iTotalPages
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComProgressExportPage Integer iPage Integer iTotalPages
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComPreviewShowPage Integer iPage
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComPreviewZoomChanged Integer iZoomFactor
+    End_Procedure
+
+    { MethodType = Event Visibility = Private }
+    Procedure OnComPreviewClick C_drHitTests iPos Integer iSectionId String sObject String sValue
+    End_Procedure
+
+    { Visibility=Private }
+    Procedure RegisterComEvents
+        Send RegisterComEvent 1 msg_OnComReportError
+        Send RegisterComEvent 2 msg_OnComReportInfo
+        Send RegisterComEvent 3 msg_OnComFunctionError
+        Send RegisterComEvent 10 msg_OnComReportStatistics
+        Send RegisterComEvent 20 msg_OnComProgressRecordsRead
+        Send RegisterComEvent 21 msg_OnComProgressCountPage
+        Send RegisterComEvent 22 msg_OnComProgressFormatPage
+        Send RegisterComEvent 23 msg_OnComProgressExportPage
+        Send RegisterComEvent 30 msg_OnComPreviewShowPage
+        Send RegisterComEvent 31 msg_OnComPreviewZoomChanged
+        Send RegisterComEvent 32 msg_OnComPreviewClick
+    End_Procedure
+End_Class
+
+// CoClass
+// ProgID: DRAPI.Demo.6.2
+// CLSID: {72EFE658-9743-42E3-83E9-B568BE9F5799}
+// DataFlex Reports 2018 Demo Runtime
+{ CLSID="{72EFE658-9743-42E3-83E9-B568BE9F5799}" }
+Class cDataFlexReportsAPI is a cComActiveXControl
+    Import_Class_Protocol cCom_DataFlexReportsAPI
+    Import_Class_Protocol cCom_DataFlexReportsAPIEvents
+
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        Set psProgID to "{72EFE658-9743-42E3-83E9-B568BE9F5799}"
+        Set psEventId to "{8703066E-B5E6-4BBC-9234-91D67111964A}"
+        Set peAutoCreate to acDeferredAutoCreate
+    End_Procedure
+End_Class

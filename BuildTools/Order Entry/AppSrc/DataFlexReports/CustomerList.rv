@@ -1,0 +1,491 @@
+Use Windows.pkg
+Use DFRptVw.pkg
+Use Colr_dlg.pkg
+
+Use cDRReport.pkg
+Use cDRDesktopPreview.pkg
+Use DRStatuspanel.dg
+
+// Use the data-dictionary to include the selectionlist and open the customer table
+Use cCustomerDataDictionary.dd
+
+// This example produces a simple customer list. The report used (customerList.dr) is used for this view and for the drilldown
+// example view. In this view all drilldown capabilties of the report are disabled and all customers - within the selection range -
+// set by the operator are shown. The output panel used is a desktopview which means the Windows taskbar button now can switch
+// Between the order entry main panel and the report output.
+
+// Report sorting is different than in most other reports. Sorting is done via grouping and the selected "sort field" is used
+// to dynamically change the function that tells how to group.
+
+// The view contains a couple more nifty features such as:
+// - Settting the copies to 2
+// - Use a different canvas color
+// - How to use report parameters to hide fields and move/resize fields.
+
+// Note that the report definition of "customer list.dr" is different from the report definition of "CustomerList.dr" in
+// the weborder/webordermobile examples.
+
+Deferred_View Activate_oCustomerListReportView for ;
+Object oCustomerListReportView is a ReportView
+    Set Label to "List of Customers"
+    Set Icon to 'DR.Ico'
+
+    Object oReport is a cDRReport
+        Set pbShowStatusPanel to True
+        Set phoStatusPanel to oDRStatusPanel
+        Set pePreviewStyle to C_DRPREVIEW_DESKTOPVIEW
+        Set psReportName to "Customer List.DR"
+
+        Procedure OnInitializeReport
+            Integer eOutputDeviceMode
+
+            Forward Send OnInitializeReport
+
+            // Convert from the ReportView Output_Device_Mode to peOutputDestination
+            Get Output_Device_Mode to eOutputDeviceMode
+            Set peOutputDestination to eOutputDeviceMode
+
+            Send SetFilters
+            Send SetSortFields
+            Send SetHideOptions
+            Send SetDrillDown
+        End_Procedure
+
+        Procedure SetSortFields
+            String sReportId sSortField
+
+            Get psReportId to sReportId
+
+            Get SortField of oSortOrderGroup to sSortField
+            Set psFunction sReportId "GroupDataOn" to ("return" * sSortField)
+        End_Procedure
+
+        Procedure OnCreate
+            Forward Send OnCreate
+
+            Set piReportLanguage '' to LANG_NEUTRAL
+        End_Procedure
+
+        // Drilldown is a feature that is used in DrillDownCustomerList.rv and needs to be
+        // disabled in this report.
+        Procedure SetDrillDown
+            String sReportId
+            Integer iParameter
+
+            Get psReportId to sReportId
+            Get ParameterIdByName sReportId "DrillDown" to iParameter
+            Set psParameterValue sReportId iParameter to False
+        End_Procedure
+
+        // By hiding the phone number the report will show the fax number
+        // By hiding the phone and fax number the report will move the location of the e-mail object and resizes the object too
+        Procedure SetHideOptions
+            String sReportId
+            Integer eHideOption iParameter
+
+            Get psReportId to sReportId
+            Get HideOption of oHideOptionsCombo to eHideOption
+            Case Begin
+                Case (eHideOption = 0)
+                    Get ParameterIdByName sReportId "HidingPhone" to iParameter
+                    Set psParameterValue sReportId iParameter to True
+                    Get ParameterIdByName sReportId "HidingFax" to iParameter
+                    Set psParameterValue sReportId iParameter to False
+                    Case Break
+                Case (eHideOption = 1)
+                    Get ParameterIdByName sReportId "HidingPhone" to iParameter
+                    Set psParameterValue sReportId iParameter to False
+                    Get ParameterIdByName sReportId "HidingFax" to iParameter
+                    Set psParameterValue sReportId iParameter to True
+                    Case Break
+                Case (eHideOption = 2)
+                    Get ParameterIdByName sReportId "HidingPhone" to iParameter
+                    Set psParameterValue sReportId iParameter to True
+                    Get ParameterIdByName sReportId "HidingFax" to iParameter
+                    Set psParameterValue sReportId iParameter to True
+                    Case Break
+            Case End
+        End_Procedure
+
+        Procedure OnDisplayReport
+            Integer rgbColor
+
+            Forward Send OnDisplayReport
+
+            // Get the color selected by the user for the canvas
+            Get Color of oCanvasColorForm to rgbColor
+            Set piPreviewCanvasColor to rgbColor
+        End_Procedure
+
+        Procedure OnPrintReport Handle  ByRef hPrintDlg
+            Handle hoPrintDialog
+            PRINTPAGERANGE[] PageRanges
+
+            Forward Send OnPrintReport (&hPrintDlg)
+
+            // Each cDRReport has a print dialog child object, access to the child object
+            // goes via the phoPrintDialog property
+            Get phoPrintDialog to hoPrintDialog
+
+            // Set the number of copies to 2. Note that while we set this, the default printer might
+            // not support setting copies and may ignore the value. For example; Microsoft XPS Document writer ignores
+            // the setting. To find out what your printer support or not download the device capabilities tool
+            // from www.dataacces.eu. The URL when writing this note was: https://www.dataaccess.eu/resources/downloads/download-category/download-subcategory-842?dagapsg=70
+            Set piCopies of hoPrintDialog to 2
+
+            // This allows a user to change the pages to be printed
+            Move 1 to PageRanges[0].nFromPage
+            Get ReportPageCount to PageRanges[0].nToPage
+            Set pPageRanges of hoPrintDialog to PageRanges
+            Set piFlags of hoPrintDialog to (PD_USEDEVMODECOPIES ior PD_DISABLEPRINTTOFILE ior PD_PAGENUMS ior PD_SELECTION)
+        End_Procedure
+
+        Procedure SetFilters
+            String sReportId
+            String sFilterValue
+            Integer[] iCustomerCustomerNumbers
+            String sCustomerState sColumnName
+
+            Get psReportId to sReportId
+
+            Get Value of oFromCustomerCustomerNumber to iCustomerCustomerNumbers[0]
+            Get Value of oToCustomerCustomerNumber to iCustomerCustomerNumbers[1]
+
+            // If the start number is higher than the ending number reverse the values
+            If (iCustomerCustomerNumbers[0] > iCustomerCustomerNumbers[1]) Begin
+                Move (ReverseArray (iCustomerCustomerNumbers)) to iCustomerCustomerNumbers
+            End
+            If (iCustomerCustomerNumbers[0] <> 0) Begin
+                // The next line shows the use of the function ReportTableColumnName to create the column name
+                // the report instead of passing a fixed constant. Note that passing a constant is quicker.
+                Get ReportTableColumnName sReportId File_Field Customer.Customer_Number to sColumnName
+                Send AddFilter sReportId sColumnName C_DRGreaterThanOrEqual iCustomerCustomerNumbers[0]
+            End
+            If (iCustomerCustomerNumbers[1] <> 0) Begin
+                Send AddFilter sReportId "{Customer.Customer_Number}" C_DRLessThanOrEqual iCustomerCustomerNumbers[1]
+            End
+
+            Get Value of oCustomerState to sCustomerState
+            Move (Trim (sCustomerState)) to sCustomerState
+            If (sCustomerState <> "") Begin
+                Send AddFilter sReportId "{Customer.State}" C_DREqual sCustomerState
+            End
+
+            // Collect the filterinformation and pass the information to the function named 'Filters' in the
+            // report. The filter conditions are printed at the end of the report
+            Get FilterInformation sReportId to sFilterValue
+            If (sFilterValue <> '') Begin
+                Set psFunction sReportId 'Filters' to ('return' * sFilterValue)
+            End
+        End_Procedure
+    End_Object
+
+    Object oCustomerCustomerNumberGroup Is A Group
+        Set Label to "Customer Number"
+        Set Location to 5 5
+
+        Object oFromCustomerCustomerNumber Is A Form
+            Set Size to 13 79
+            Set Location to 10 66
+            Set Label_Justification_Mode to jMode_Right
+            Set Label_Col_Offset to 2
+            Set Label to "From:"
+            Set Status_Help to "First customer number in selection range."
+            Set Numeric_Mask 0 to 6 0
+            Set Prompt_Button_Mode to pb_PromptOn
+            Set Prompt_Object to Customer_sl
+
+            Procedure CopyPromptValue Handle hoPrompt
+                RowID[] riCustomer
+                Boolean bFound
+
+                Get SelectedRowIds of hoPrompt to riCustomer
+                Move (FindByRowID (Customer.File_Number, riCustomer[0])) to bFound
+                Set Value to Customer.Customer_Number
+            End_Procedure
+
+            // This procedure is called if peUpdateMode is not equal to umPromptNonInvoking, we use the
+            // SelectBestColumn function to retrieve the column for the passed file and field number. After retrieving
+            // the column we setup the list.
+            // NOTE: Make sure the selected column in the prompt object matches the data type of this form object
+            Procedure Prompt_CallBack Integer hoPrompt
+                Integer iColumn
+                Handle hoColumn
+                Boolean bIsVisible
+
+                Get SelectBestColumn Of hoPrompt File_Field Customer.Customer_Number to iColumn
+                If (iColumn <> -1) Begin
+                    Get ColumnObject of hoPrompt iColumn to hoColumn
+                    Get pbVisible of hoColumn to bIsVisible
+                    If (not (bIsVisible)) Begin
+                        Set piInitialColumn of hoPrompt to -2
+                    End
+                    Set piUpdateColumn of hoPrompt to iColumn
+                    Set peUpdateMode of hoPrompt to umPromptValue
+                End
+                Else Begin
+                    Set phmPromptUpdateCallback of hoPrompt to CopyPromptValue
+                    Set peUpdateMode of hoPrompt to -1
+                End
+            End_Procedure
+        End_Object
+
+        Object oToCustomerCustomerNumber Is A Form
+            Set Size to 13 79
+            Set Location to 25 66
+            Set Label_Justification_Mode to jMode_Right
+            Set Label_Col_Offset to 2
+            Set Label to "To:"
+            Set Status_Help to "Last customer number in selection range."
+            Set Numeric_Mask 0 to 6 0
+            Set Prompt_Button_Mode to pb_PromptOn
+            Set Prompt_Object to Customer_sl
+
+            Procedure CopyPromptValue Handle hoPrompt
+                RowID[] riCustomer
+                Boolean bFound
+
+                Get SelectedRowIds of hoPrompt to riCustomer
+                Move (FindByRowID (Customer.File_Number, riCustomer[0])) to bFound
+                Set Value to Customer.Customer_Number
+            End_Procedure
+
+            // This procedure is called if peUpdateMode is not equal to umPromptNonInvoking, we use the
+            // SelectBestColumn function to retrieve the column for the passed file and field number. After retrieving
+            // the column we setup the list.
+            // NOTE: Make sure the selected column in the prompt object matches the data type of this form object
+            Procedure Prompt_CallBack Integer hoPrompt
+                Integer iColumn
+                Handle hoColumn
+                Boolean bIsVisible
+
+                Get SelectBestColumn Of hoPrompt File_Field Customer.Customer_Number to iColumn
+                If (iColumn <> -1) Begin
+                    Get ColumnObject of hoPrompt iColumn to hoColumn
+                    Get pbVisible of hoColumn to bIsVisible
+                    If (not (bIsVisible)) Begin
+                        Set piInitialColumn of hoPrompt to -2
+                    End
+                    Set piUpdateColumn of hoPrompt to iColumn
+                    Set peUpdateMode of hoPrompt to umPromptValue
+                End
+                Else Begin
+                    Set phmPromptUpdateCallback of hoPrompt to CopyPromptValue
+                    Set peUpdateMode of hoPrompt to -1
+                End
+            End_Procedure
+        End_Object
+
+        Set Size to 45 150
+    End_Object
+
+    Object oCustomerStateGroup Is A Group
+        Set Label to "State"
+        Set Location to 52 5
+
+        Object oCustomerState is a ComboForm
+            Set Size to 12 79
+            Set Location to 11 66
+            Set Label_Justification_Mode to jMode_Right
+            Set Label_Col_Offset to 2
+            Set Label to "State:"
+            Set Status_Help to "Select the State to Filter on"
+            Set Form_Margin to 2
+
+            // This procedure is called for each value in the validation table, we simply add the supplied
+            // value to the combo list.
+            Procedure AddItem Integer iItem String sData String sDesc Integer iFile Integer iRec
+                Send Combo_Add_Item sData
+            End_Procedure
+
+            // This procedure is called when the combo list is to be filled. We use Request_Fill_From_List
+            // to instruct the validation table to send AddItem for each value in the validation table.
+            Procedure Combo_Fill_List
+                Send Request_Fill_From_List to Customer_State_VT Self (Refproc (AddItem))
+            End_Procedure
+        End_Object
+
+        Set Size to 27 150
+    End_Object
+
+    Object oSortOrderGroup is a Group
+        Set Location to 81 5
+        Set Size to 28 150
+        Set Label to "Order By"
+
+        Function SortField Returns String
+            String sFieldName
+            String[] sSortColumns
+            Integer iItem
+
+            Get Value of oSortOnCombo to sFieldName
+            Get Combo_Item_Matching of oSortOnCombo sFieldName to iItem
+            Get psSortColumns of oSortOnCombo to sSortColumns
+            
+            Function_Return sSortColumns[iItem]
+        End_Function
+
+        Object oSortOnCombo is a ComboForm
+            Set Location to 11 5
+            Set Size to 12 140
+            // Combo_Sort_State should not be set to true. If set it breaks the connection between the displayed name and the sort field
+            Set Combo_Sort_State to False
+            Set Entry_State to False
+
+            { DesignTime = False }
+            Property String[] psSortColumns
+
+            // Display a set with friendly names and store the DataFlex Reports column reference in a property
+            Procedure Combo_Fill_List
+                String[] sSortColumns
+
+                Send Combo_Add_Item "Customer_Number"
+                Move "{Customer.Customer_Number}" to sSortColumns[0]
+
+                Send Combo_Add_Item "Name"
+                Move "{Customer.Name}" to sSortColumns[1]
+
+                Set psSortColumns to sSortColumns
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oDestinationGroup Is A RadioGroup
+        Set Label to "Output destination"
+        Set Location to 111 5
+        Set Size to 46 77
+
+        Object oScreenRadio Is A Radio
+            Set Label to "Preview"
+            Set Size to 10 60
+            Set Location to 10 6
+            Set Status_Help to "Print the report to screen"
+        End_Object
+
+        Object oPrinterRadio Is A Radio
+            Set Label to "Printer"
+            Set Size to 10 60
+            Set Location to 22 6
+            Set Status_Help to "Prints the report to printer"
+        End_Object
+
+        Object oExportRadio Is A Radio
+            Set Label to "Export"
+            Set Size to 10 60
+            Set Location to 34 6
+            Set Status_Help to "Outputs the report to disk file (PDF, CSV, Image, HTML, Excel)"
+        End_Object
+
+        Procedure Notify_Select_State Integer iNewItem Integer iOldItem
+            Forward Send Notify_Select_State iNewItem iOldItem
+
+            Case Begin
+                Case (iNewItem = 0)
+                    Set Output_Device_Mode to PRINT_TO_WINDOW
+                    Case Break
+                Case (iNewItem = 1)
+                    Set Output_Device_Mode to PRINT_TO_PRINTER
+                    Case Break
+                Case (iNewItem = 2)
+                    Set Output_Device_Mode to PRINT_TO_FILE
+                    Case Break
+            Case End
+        End_Procedure
+    End_Object
+
+    Object oHideOptionsCombo is a ComboForm
+        Set Location to 117 90
+        Set Size to 12 58
+        Set Combo_Sort_State to False
+        Set Entry_State to False
+        Set peAnchors to anTopLeftRight
+        Set Label to "Hide"
+        Set Label_Justification_Mode to JMode_Top
+        Set Label_Col_Offset to 0
+        Set piMaxSize to 12 100
+        Set piMinSize to 12 50
+
+        Procedure Combo_Fill_List
+            Send Combo_Add_Item "Hide Phone"
+            Send Combo_Add_Item "Hide Fax"
+            Send Combo_Add_Item "Hide Phone & Fax"
+        End_Procedure
+
+        Function HideOption Returns Integer
+            String sValue
+            Integer eOption
+
+            Get Value to sValue
+            Get Combo_Item_Matching sValue to eOption
+
+            Function_Return eOption
+        End_Function
+    End_Object
+
+    Object oColorDialog is a ColorDialog
+    End_Object
+
+    Object oCanvasColorForm is a Form
+        Set Size to 12 58
+        Set Location to 141 90
+        Set Prompt_Button_Mode to PB_PromptOn
+        Set Entry_State to False
+        // For the DA Orange Color set the property to: (Rgb (230,71,18))
+        Set Color to clLtGray
+        Set Label to "Canvas Color"
+        Set Label_Justification_Mode to JMode_Top
+        Set Label_Col_Offset to 0
+        Set peAnchors to anTopLeftRight
+        Set piMaxSize to 12 100
+        Set piMinSize to 12 50
+
+        Procedure Prompt
+            Boolean bSelected
+            Integer rgbColor
+
+            Get Show_Dialog of oColorDialog to bSelected
+            If (bSelected) Begin
+                Get SelectedColor of oColorDialog to rgbColor
+                Set Color to rgbColor
+            End
+        End_Procedure
+    End_Object
+
+    Object oPrintButton Is A Button
+        Set Label to "&Print"
+        Set Status_Help to "Print the report"
+        Set Size to 14 50
+        Set Location to 159 50
+        Set Default_State to True
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Handle hoPrintDialog
+
+            Get phoPrintDialog of oReport to hoPrintDialog
+            Set piFlags of hoPrintDialog to PD_USEDEVMODECOPIES
+
+            Send RunReport of oReport
+        End_Procedure
+    End_Object
+
+    Object oCancelButton Is A Button
+        Set Label to "&Cancel"
+        Set Size to 14 50
+        Set Location to 159 105
+        Set Status_Help to "Cancel this Panel"
+        Set peAnchors to anBottomRight
+
+        // This procedure closes the report view.
+        Procedure OnClick
+            Send Request_Cancel
+        End_Procedure
+    End_Object
+
+    On_Key Key_Alt+Key_C Send KeyAction of oCancelButton
+    On_Key Key_Escape Send KeyAction of oCancelButton
+    On_Key Key_Alt+Key_P Send KeyAction of oPrintButton
+
+    Set Location to 6 6
+    Set Size to 176 160
+Cd_End_Object

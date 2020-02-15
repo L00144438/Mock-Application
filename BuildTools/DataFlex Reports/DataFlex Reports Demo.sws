@@ -1,0 +1,5 @@
+[Properties]
+Version=19.1
+HideSystemClasses=false
+[WorkspacePaths]
+ConfigFile=.\Programs\Config.ws

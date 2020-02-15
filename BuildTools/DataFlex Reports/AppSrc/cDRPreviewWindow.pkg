@@ -1,0 +1,234 @@
+Use Windows.pkg
+Use cWinControl.pkg
+Use cDR.h.pkg
+
+Use navigate.pkg
+Use nesting.pkg
+
+Define WM_MOUSEWHEEL                    for |CI$020A
+Define WM_MOUSEHOVER                    for |CI$02A1
+Define WM_MOUSELEAVE                    for |CI$02A3
+
+// SetScollInfo() constants
+Define SB_COLRIGHT                      for 256
+Define SB_COLLEFT                       for 257
+Define SB_ROWUP                         for 258
+Define SB_ROWDOWN                       for 259
+
+Define DC_BRUSH                             for 18
+Define DC_PEN                               for 19
+
+{ ClassLibrary = Windows }
+Class cDRPreviewWindow is a cWinControl
+    Procedure Construct_Object        
+        Forward Send Construct_Object
+        
+        Set External_Class_Name "cDRPreviewWindow40" to "static"
+        
+        Set External_Message WM_PAINT           to msg_OnPaint
+        Set External_Message WM_HSCROLL         to msg_OnHScroll
+        Set External_Message WM_VSCROLL         to msg_OnVScroll
+        Set External_Message WM_MOUSEWHEEL      to msg_OnMouseWheel
+        Set External_Message WM_ERASEBKGND      to msg_OnEraseBkgnd
+        
+        Set External_Message WM_NCHITTEST       to msg_OnNCHitTest
+        Set External_Message WM_NCLBUTTONDOWN   to msg_OnNCLButtonDown        
+        
+        Set External_Message WM_LBUTTONDOWN     to msg_OnLButtonDown        
+        
+        Set Window_Style to WS_HSCROLL True
+        Set Window_Style to WS_VSCROLL True
+        Set Window_Style to WS_TABSTOP True
+        Set Window_Style to WS_CHILD True
+        Set Window_Style to SS_NOTIFY True
+        
+        Set Focus_Mode to Focusable
+        Set Border_Style to Border_None
+
+        Send Define_Navigation
+        Send Define_Standard_Object_Mixin
+        Send Define_Dflabel_Mixin
+        Send Define_Shadow_Mixin
+        Send Define_Nesting
+
+        On_Key Key_PgDn Send PreviewNextPage
+        On_Key Key_PgUp Send PreviewPreviousPage
+        On_Key Key_Ctrl+Key_Home Send PreviewFirstPage
+        On_Key Key_Ctrl+Key_End Send PreviewLastPage
+    End_Procedure
+    
+    Import_Class_Protocol Navigate_Mixin
+    Import_Class_Protocol Standard_Object_Mixin
+    Import_Class_Protocol DFLabel_Mixin
+    Import_Class_Protocol Shadow_Mixin
+    Import_Class_Protocol Nesting_mixin
+    
+    // The OCX is informed about the changed size of the preview window and recalculates the scrollbars
+    { Visibility = Private }
+    Procedure Set GUISize Integer iY Integer iX
+        Integer iSize
+        Handle hWnd hoReport
+        Boolean bIsCreated
+
+        Get Window_Handle to hWnd
+        Get GUISize to iSize
+
+        Forward Set GUISize to iY iX
+
+        If (BuildingObjectId <> 0 or hWnd = 0) Begin
+            Procedure_Return
+        End
+
+        If (Hi(iSize) <> iY or Low(iSize) <> iX) Begin
+            Get phoReport to hoReport
+            If (hoReport <> 0) Begin
+                Get IsComObjectCreated of hoReport to bIsCreated
+                If (bIsCreated) Begin
+                    Set ComPreviewHWND of hoReport to hWnd 
+                    Send ComPreviewPaint of hoReport False
+                End
+            End
+        End
+    End_Procedure
+
+    // Handles WM_ERASEBKGND and paints the background light gray
+    { Visibility = Private }
+    Procedure OnEraseBkgnd Integer wParam Integer lParam
+        Handle hWnd hDC
+        Integer iResult
+        tWinRect BackgroundRect
+
+        Get Window_Handle to hWnd
+        If (hWnd <> 0) Begin
+            Move wParam to hDC
+            
+            Move (GetClientRect (hWnd, AddressOf(BackgroundRect))) to iResult
+            Move (SelectObject (hDC, GetStockObject (DC_BRUSH))) to iResult
+            Move (DR_WINAPI_SetDCBrushColor (hDC, clLtGray)) to iResult
+            Move (Rectangle (hDC, BackgroundRect.left-1, BackgroundRect.top-1, BackgroundRect.right+1, BackgroundRect.bottom+1)) to iResult
+    
+            Set Windows_Override_State to True
+            Procedure_Return 1 // handled
+        End
+    End_Procedure
+
+    // On WM_PAINT send a message to repaint the previewer
+    { Visibility = Private }
+    Procedure OnPaint Integer wParam Integer lParam
+        Handle hWnd hDc hoReport
+        tWinPaintStruct PaintData
+        tWinRect PaintRect
+        Boolean bOk bIsCreated
+
+        Get Window_Handle to hWnd
+        If (hWnd <> 0) Begin
+            Get phoReport to hoReport
+            If (hoReport <> 0) Begin
+                Get Object_Id of hoReport to hoReport // Is handle still OK
+                If (hoReport <> 0) Begin
+                    Get IsComObjectCreated of hoReport to bIsCreated
+                    If (bIsCreated) Begin
+                        Move (DR_WINAPI_GetUpdateRect (hWnd, AddressOf (PaintRect), False)) to bOk
+                        If (bOk) Begin
+                            Move (BeginPaint (hWnd, AddressOf (PaintData))) to hDc
+                            Send PreviewPaint
+                            Move (EndPaint (hWnd, AddressOf (PaintData))) to hDC
+                        End
+                        Set Windows_Override_State to True
+                        Procedure_Return False // Handled                    
+                    End
+                End
+            End
+        End
+    End_Procedure
+    
+    // On WM_HSCROLL scroll the contents horizontally
+    { Visibility = Private }
+    Procedure OnHScroll Integer wParam Integer lParam
+        Send PreviewHScroll (Low(wParam)) (Hi(wParam))
+    End_Procedure
+
+    // On WM_VSCROLL scroll the contents vertically
+    { Visibility = Private }
+    Procedure OnVScroll Integer wParam Integer lParam
+        Send PreviewVScroll (Low(wParam)) (Hi(wParam))
+    End_Procedure
+
+    // On WM_MOUSEWHEEL scroll the preview window contents or zoom in/out
+    { Visibility = Private }
+    Procedure OnMouseWheel Integer wParam Integer lParam
+        Integer iResult iDelta iFactor
+        
+        Get piPreviewZoom to iFactor
+
+        Move (Hi(wParam)) to iResult
+        Move (Cast(iResult,Short)) to iDelta
+
+        Case Begin
+            Case (Low(wParam) = MK_CONTROL)
+                // Zoom window
+                If (iDelta < 0) Begin
+                    Set piPreviewZoom to ((iFactor - 10) max 25)
+                End
+                Else Begin
+                    If (iDelta > 0) Begin
+                        Set piPreviewZoom to ((iFactor + 10) min 500)
+                    End
+                End
+                Case Break
+            Case (Low(wParam) = MK_SHIFT)
+                Case Break // no action
+            Case Else
+                // Scroll window
+                If (iDelta < 0) Begin
+                    Send PreviewVScroll SB_ROWDOWN 0
+                End
+                Else Begin
+                    If (iDelta > 0) Begin
+                        Send PreviewVScroll SB_ROWUP 0
+                    End
+                End
+                Case Break
+        Case End
+    End_Procedure
+    
+    // Handles WM_NCHITTEST by passing it to DefWindowProc()
+    { Visibility = Private }
+    Procedure OnNCHitTest Integer wParam Integer lParam
+        Handle hWnd
+        Integer iResult
+
+        Get Window_Handle to hWnd
+        If (hWnd <> 0) Begin
+        Move (DR_WinAPI_DefWindowProc(hWnd,WM_NCHITTEST,wParam,lParam)) to iResult
+            Set Windows_Override_State to True
+        End
+        
+        Procedure_Return iResult
+    End_Procedure
+
+    // Handles WM_NCLBUTTONDOWN by passing it to DefWindowProc()
+    { Visibility = Private }
+    Procedure OnNCLButtonDown Integer wParam Integer lParam
+        Handle hWnd
+        Integer iResult
+
+        Get Window_Handle to hWnd
+        If (hWnd <> 0) Begin
+        Move (DR_WinAPI_DefWindowProc(hWnd,WM_NCLBUTTONDOWN,wParam,lParam)) to iResult
+            Set Windows_Override_State to True
+        End
+        
+        Procedure_Return iResult
+    End_Procedure
+
+    // Handles WM_LBUTTONDOWN by passing it to the OCX
+    { Visibility = Private }
+    Procedure OnLButtonDown Integer wParam Integer lParam
+        Send PreviewClick wParam lParam
+
+        Set Windows_Override_State to True
+        
+        Procedure_Return False // handled
+    End_Procedure
+End_Class

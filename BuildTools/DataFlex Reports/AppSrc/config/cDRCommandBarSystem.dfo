@@ -1,0 +1,38 @@
+Object
+    Object oDRToolBar is a cCJToolbar
+        Set pbCloseable to False
+        Set pbEnableDocking to False
+        Set pbGripper to False
+        Set peStretched to stStretch
+        Set pbDockNextTo to False
+
+        Object oFirstPage is a cDRFirstPageMenuItem
+        End_Object
+
+        Object oPreviousPage is a cDRPreviousPageMenuItem
+        End_Object
+
+        Object oCurrentPage is a cDRCurrentPageMenuItem
+            Set peControlType to xtpControlEdit
+        End_Object
+
+        Object oNextPage is a cDRNextPageMenuItem
+        End_Object
+
+        Object oLastPage is a cDRLastPageMenuItem
+        End_Object
+
+        Object oRefresh is a cDRRefreshMenuItem
+        End_Object
+
+        Object oPrint is a cDRPrintMenuItem
+        End_Object
+
+        Object oZoom is a cDRZoomMenuItem
+        End_Object
+
+        Object oExport is a cDRExportMenuItem
+            Set phoExportOptionsDialog to (oDRExportOptionsDialog)
+        End_Object
+    End_Object
+End_Object

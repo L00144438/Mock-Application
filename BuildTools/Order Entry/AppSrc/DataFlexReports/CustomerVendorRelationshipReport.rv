@@ -1,0 +1,427 @@
+Use Windows.pkg
+Use DFRptVw.pkg
+Use File_Dlg.Pkg
+Use cTextEdit.pkg
+
+Use cDRReport.pkg
+Use cDRPreview.pkg
+Use DRStatuspanel.dg
+
+Use cCustomerDataDictionary.dd
+
+// This example runs a report showing all customers that meet the selection criteria and then produces a list
+// of vendors that delivered products to the customer. For each vendor the report shows how much sales were
+// done with this vendor.
+
+// Special in this example is that two different reports can be started to produce the results.
+// - Customer Vendor Relationship via Groups.dr:
+//   -- Significantly faster than Customer Vendor Relationship via SubReport.dr
+//   -- Due to relationships unable to show customers that had no sales (are they customers?)
+// - Customer Vendor Relationship via SubReport.dr:
+//   -- Uses a sub-report to collect the sales information
+//   -- Slower than Customer Vendor Relationship via Groups.dr
+//   -- Shows all customers and in case of zero sales a textbox that there are zero sales
+
+// Because the report object can run two different reports the caption label of the preview window
+// will not be set to the report name but to a constant value (see Set psPreviewCaptionLabel)
+
+// A special feature is the sorting of customers and vendors. The sorting is not done at record level but at
+// group level
+
+Deferred_View Activate_oCustomerVendorRelationshipReportView for ;
+Object oCustomerVendorRelationshipReportView is a ReportView
+    Set Label to "Customer Vendor Relationship"
+
+    Object oCustomer_DD is a cCustomerDataDictionary
+    End_Object
+
+    Object oReport is a cDRReport
+        Set pbShowStatusPanel to True
+        Set phoStatusPanel to oDRStatusPanel
+        Set psPreviewCaptionLabel to "Customer Vendor Relationship"
+
+        Procedure OnCreate
+            Forward Send OnCreate
+
+            Set piReportLanguage '' to LANG_DEFAULT
+        End_Procedure
+
+        Procedure OnInitializeReport
+            String sReportId
+            Integer eOutputDeviceMode
+
+            Forward Send OnInitializeReport
+
+            // Convert from the ReportView Output_Device_Mode to peOutputDestination
+            Get Output_Device_Mode to eOutputDeviceMode
+            Set peOutputDestination to eOutputDeviceMode
+
+            Get psReportId to sReportId
+
+            Send SetFilters
+            Send SetSortFields
+        End_Procedure
+
+        Procedure SetFilters
+            String sReportId sValue
+
+            Get psReportId to sReportId
+
+            Get Value of oCustomerCustomerNumber to sValue
+            If (sValue <> "") Begin
+                Send AddFilter sReportId "{Customer.Customer_Number}" C_drEqual sValue
+            End
+
+            Get Value of oCustomerState to sValue
+            If (sValue <> "") Begin
+                Send AddFilter sReportId "{Customer.State}" C_drEqual sValue
+            End
+
+            Get Value of oCustomerCity to sValue
+            If (sValue <> "") Begin
+                Send AddFilter sReportId "{Customer.City}" C_drEqual sValue
+            End
+
+            Get Value of oCustomerStatus to sValue
+            If (sValue <> "") Begin
+                Send AddFilter sReportId "{Customer.Status}" C_drEqual sValue
+            End
+        End_Procedure
+
+        // Normally a report will be sorted on records and using the AddRecordSortField method but this
+        // report uses groups and the group sort order is created by the result of a function
+        Procedure SetSortFields
+            String sReportId sSortField sSubReportId
+            Boolean bCustomersWithoutSales
+
+            Get psReportId to sReportId
+
+            Get CustomersSortField of oSortOrderGroup to sSortField
+            Set psFunction sReportId "GroupCustomersBy" to ("return" * sSortField)
+
+            Get VendorsSortField of oSortOrderGroup to sSortField
+            Get Checked_State of oCustomersWithoutSalesCheckBox to bCustomersWithoutSales
+            If (bCustomersWithoutSales) Begin
+                Get SubReportIDByName sReportId "Vendors Selling to Customer Subreport" to sSubReportId
+                Set psFunction sSubReportId "GroupVendorsBy" to ("return" * sSortField)
+            End
+            Else Begin
+                Set psFunction sReportId "GroupVendorsBy" to ("return" * sSortField)
+            End
+        End_Procedure
+    End_Object
+
+    Object oCustomerCustomerNumber Is A Form
+        Set Size to 12 57
+        Set Location to 5 71
+        Set piMaxSize to 12 77
+        Set piMinSize to 12 22
+        Set Label_Justification_Mode to jMode_Right
+        Set Label_Col_Offset to 2
+        Set Label to "Customer Number"
+        Set Status_Help to "Customer Id Number."
+        Set psToolTip to "Select Customer_Number"
+        Set Numeric_Mask 0 to 11 0
+        Set Prompt_Button_Mode to pb_PromptOn
+        Set Prompt_Object to Customer_sl
+        Set Form_Mask to "Z"
+
+        Procedure CopyPromptValue Handle hoPrompt
+            RowID[] riCustomer
+            Boolean bFound
+
+            Get SelectedRowIds of hoPrompt to riCustomer
+            Move (FindByRowID (Customer.File_Number, riCustomer[0])) to bFound
+            Set Value to Customer.Customer_Number
+        End_Procedure
+
+        // This procedure is called if peUpdateMode is not equal to umPromptNonInvoking, we use the
+        // SelectBestColumn function to retrieve the column for the passed file and field number. After retrieving
+        // the column we setup the list.
+        // NOTE: Make sure the selected column in the prompt object matches the data type of this form object
+        Procedure Prompt_CallBack Integer hoPrompt
+            Integer iColumn
+            Handle hoColumn
+            Boolean bIsVisible
+
+            Get SelectBestColumn Of hoPrompt File_Field Customer.Customer_Number to iColumn
+            If (iColumn <> -1) Begin
+                Get ColumnObject of hoPrompt iColumn to hoColumn
+                Get pbVisible of hoColumn to bIsVisible
+                If (not (bIsVisible)) Begin
+                    Set piInitialColumn of hoPrompt to -2
+                End
+                Set piUpdateColumn of hoPrompt to iColumn
+                Set peUpdateMode of hoPrompt to umPromptValue
+            End
+            Else Begin
+                Set phmPromptUpdateCallback of hoPrompt to CopyPromptValue
+                Set peUpdateMode of hoPrompt to -1
+            End
+        End_Procedure
+    End_Object
+
+    Object oCustomerState Is A ComboForm
+        Set Size to 12 39
+        Set Location to 19 71
+        Set piMaxSize to 12 14
+        Set piMinSize to 12 4
+        Set Label_Justification_Mode to jMode_Right
+        Set Label_Col_Offset to 2
+        Set Label to "State"
+        Set Status_Help to "Two letter state ID."
+        Set psToolTip to "Select State"
+        Set Form_Margin to 2
+        Set Entry_State to False
+
+        // This procedure is called for each value in the validation table, we simply add the supplied
+        // value to the combo list.
+        Procedure AddItem Integer iItem String sData String sDesc Integer iFile Integer iRec
+            Send Combo_Add_Item sData
+        End_Procedure
+
+        // This procedure is called when the combo list is to be filled. We use Request_Fill_From_List
+        // to instruct the validation table to send AddItem for each value in the validation table.
+        Procedure Combo_Fill_List
+            Send Combo_Add_Item ""
+            Send Request_Fill_From_List of Customer_State_VT Self (Refproc (AddItem))
+        End_Procedure
+    End_Object
+
+    Object oCustomerCity is a ComboForm
+        Set Size to 12 106
+        Set Location to 33 71
+        Set piMaxSize to 12 106
+        Set piMinSize to 12 28
+        Set Label_Justification_Mode to jMode_Right
+        Set Label_Col_Offset to 2
+        Set Label to "City"
+        Set Status_Help to "City Name."
+        Set psToolTip to "Select City"
+        Set Entry_State to False
+
+        Procedure Combo_Fill_List
+            String[] sCities
+            Integer iElements
+
+            Send Request_Read of oCustomer_DD FIRST_RECORD Customer.File_Number 1
+            While (Found)
+                If (SearchArray (Trim (Customer.City), sCities) = -1) Begin
+                    Move (Trim (Customer.City)) to sCities[SizeOfArray (sCities)]
+                End
+                Send Locate_Next of oCustomer_DD
+            Loop
+
+            Send Combo_Add_Item ""
+
+            Move (SizeOfArray (sCities)) to iElements
+            While (iElements > 0)
+                Decrement iElements
+                Send Combo_Add_Item sCities[iElements]
+            Loop
+        End_Procedure
+    End_Object
+
+    Object oCustomerStatus Is A ComboForm
+        Set Size to 12 39
+        Set Location to 47 71
+        Set piMaxSize to 12 39
+        Set piMinSize to 12 2
+        Set Label_Justification_Mode to jMode_Right
+        Set Label_Col_Offset to 2
+        Set Label to "Active Status"
+        Set Status_Help to "Active Inactive Status of customer"
+        Set psToolTip to "Select Status"
+        Set Form_Margin to 1
+
+        Procedure Combo_Fill_List
+            Send Combo_Add_Item " "
+            Send Combo_Add_Item "Y"
+            Send Combo_Add_Item "N"
+
+            Set Value to "Y"
+        End_Procedure
+
+        Set Entry_State To False
+        Set Combo_Sort_State To True
+    End_Object
+
+    Object oSortOrderGroup is a Group
+        Set Location to 61 5
+        Set Size to 42 173
+        Set peAnchors to anTopLeftRight
+        Set Label to "Order By:"
+
+        Function CustomersSortField Returns String
+            String sFieldName
+            String[] sSortColumns
+            Integer iItem
+
+            Get Value of oCustomersSortOnCombo to sFieldName
+            Get Combo_Item_Matching of oCustomersSortOnCombo sFieldName to iItem
+            Get psSortColumns of oCustomersSortOnCombo to sSortColumns
+
+            Function_Return sSortColumns[iItem]
+        End_Function
+
+        Object oCustomersSortOnCombo is a ComboForm
+            Set Location to 11 41
+            Set Size to 12 125
+            Set Combo_Sort_State to False
+            Set Entry_State 0 to False
+            Set peAnchors to anTopLeftRight
+
+            { DesignTime = False }
+            Property String[] psSortColumns
+
+            Set Label to "Customer"
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set piMaxSize to 12 200
+
+            Procedure Combo_Fill_List
+                String[] sSortColumns
+
+                Send Combo_Add_Item "Customer_Number"
+                Move "{Customer.Customer_Number}" to sSortColumns[0]
+
+                Send Combo_Add_Item "Name"
+                Move "{Customer.Name}" to sSortColumns[1]
+
+                Set psSortColumns to sSortColumns
+            End_Procedure
+        End_Object
+
+        Function VendorsSortField Returns String
+            String sFieldName
+            String[] sSortColumns
+            Integer iItem
+
+            Get Value of oVendorSortOnCombo to sFieldName
+            Get Combo_Item_Matching of oVendorSortOnCombo sFieldName to iItem
+            Get psSortColumns of oVendorSortOnCombo to sSortColumns
+
+            Function_Return sSortColumns[iItem]
+        End_Function
+
+        Object oVendorSortOnCombo is a ComboForm
+            Set Location to 25 41
+            Set Size to 12 125
+            Set Combo_Sort_State to False
+            Set Entry_State 0 to False
+            Set peAnchors to anTopLeftRight
+
+            { DesignTime = False }
+            Property String[] psSortColumns
+
+            Set Label to "Vendor"
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set piMaxSize to 12 200
+
+            Procedure Combo_Fill_List
+                String[] sSortColumns
+
+                Send Combo_Add_Item "ID"
+                Move "{Vendor.ID}" to sSortColumns[0]
+
+                Send Combo_Add_Item "Name"
+                Move "{Vendor.Name}" to sSortColumns[1]
+
+                Set psSortColumns to sSortColumns
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oDestinationGroup Is A RadioGroup
+        Set Label to "Output destination"
+        Set Location to 105 5
+        Set Size to 46 77
+
+        Object oScreenRadio Is A Radio
+            Set Label to "Preview"
+            Set Size to 10 60
+            Set Location to 10 6
+            Set Status_Help to "Print the report to screen"
+        End_Object
+
+        Object oPrinterRadio Is A Radio
+            Set Label to "Printer"
+            Set Size to 10 60
+            Set Location to 22 6
+            Set Status_Help to "Prints the report to printer"
+        End_Object
+
+        Object oExportRadio Is A Radio
+            Set Label to "Export"
+            Set Size to 10 60
+            Set Location to 34 6
+            Set Status_Help to "Outputs the report to disk file (PDF, CSV, Image, HTML, Excel, RTF)"
+        End_Object
+
+        Procedure Notify_Select_State Integer iNewItem Integer iOldItem
+            Forward Send Notify_Select_State iNewItem iOldItem
+
+            Case Begin
+                Case (iNewItem = 0)
+                    Set Output_Device_Mode to PRINT_TO_WINDOW
+                    Case Break
+                Case (iNewItem = 1)
+                    Set Output_Device_Mode to PRINT_TO_PRINTER
+                    Case Break
+                Case (iNewItem = 2)
+                    Set Output_Device_Mode to PRINT_TO_FILE
+                    Case Break
+            Case End
+        End_Procedure
+    End_Object
+
+    Object oCustomersWithoutSalesCheckBox is a CheckBox
+        Set Size to 10 50
+        Set Location to 110 95
+        Set psToolTip to 'Include Customers Without Sales'
+        Set Label to "Without Sales"
+    End_Object
+
+    Object oPrintButton Is A Button
+        Set Label to "&Print"
+        Set Status_Help to "Print the report"
+        Set Size to 14 50
+        Set Location to 153 77
+        Set Default_State to True
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Boolean bCustomersWithoutSales
+
+            Get Checked_State of oCustomersWithoutSalesCheckBox to bCustomersWithoutSales
+            If (bCustomersWithoutSales) Begin
+                Set psReportName of oReport to "Customer Vendor Relationship via SubReport.dr"
+            End
+            Else Begin
+                Set psReportName of oReport to "Customer Vendor Relationship via Groups.dr"
+            End
+
+            Send RunReport of oReport
+        End_Procedure
+    End_Object
+
+    Object oCancelButton Is A Button
+        Set Label to "&Cancel"
+        Set Size to 14 50
+        Set Location to 153 132
+        Set Status_Help to "Cancel this Panel"
+        Set peAnchors to anBottomRight
+
+        // This procedure closes the report view.
+        Procedure OnClick
+            Send Request_Cancel
+        End_Procedure
+    End_Object
+
+    On_Key Key_Alt+Key_C Send KeyAction of oCancelButton
+    On_Key Key_Alt+Key_P Send KeyAction of oPrintButton
+
+    Set Location to 6 6
+    Set Size to 170 185
+Cd_End_Object

@@ -1,0 +1,145 @@
+[
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "20",
+       "OrderSystem",
+       "1"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "21",
+       "Vendor",
+       "9"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "22",
+       "Inventory",
+       "47"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "25",
+       "Customer",
+       "100"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "27",
+       "SalesPerson",
+       "28"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "30",
+       "OrderHeader",
+       "2128"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "31",
+       "OrderDetail",
+       "4905"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "50",
+       "FlexErrs",
+       "120"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "253",
+       "CodeType",
+       "2"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "254",
+       "CodeMast",
+       "57"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "263",
+       "WebAppSession",
+       "5"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "264",
+       "WebAppUser",
+       "3"
+     ]
+   },
+   {
+     "riID": "",
+     "bNewRow": false,
+     "vTag": "",
+     "sValue": [
+       "",
+       "265",
+       "WebAppServerProps",
+       "0"
+     ]
+   }
+ ]

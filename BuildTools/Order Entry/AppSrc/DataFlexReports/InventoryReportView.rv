@@ -1,0 +1,182 @@
+Use Windows.pkg
+Use DFClient.pkg
+Use cDRReport.pkg
+Use cDRPreview.pkg
+
+Use cInventoryDataDictionary.dd
+
+// Include these views first as we need their access method and object name
+Use Inventory.vw
+Use Vendor.vw
+
+// This example shows how you can subclass the predefined MDI preview container and use it in dynamic way. This means
+// each time the report needs to run it uses its own view and the results can be visually compared. Alternatively to
+// this one can subclass the preview container class and simply assign the class handle to the phcPreviewer property
+// of a cDRReport object.
+
+// The report itself is defined to be used in a view with a OnReportPreviewClick event. The font of the item id and 
+// the vendor part id in the details section are underlined to indicate a click can be done there. The details
+// section id equals the vendor id value. The code below makes it possible to open either the inventory or the
+// vendor view and find a row in the view.
+
+Class cInventoryDRReport is a cDRReport
+    Procedure OnReportPreviewClick C_DRHitTests iPos Integer iSectionId String sObject String sValue
+        Handle hoServer
+        
+        // The only section in the report with a section id is the details section. Its ID is the vendor id value
+        If (iSectionId > 0) Begin
+            Case Begin
+                Case (sObject = 'Inventory.Item_ID')
+                    Send Activate_oInventoryView
+                    Get Server of oInventoryView to hoServer
+                    Send Clear of hoServer
+                    Set Field_Current_Value of hoServer Field Inventory.Item_ID to sValue
+                    Send File_Field_AutoFind of hoServer File_Field Inventory.Item_ID Eq
+                    Case Break
+                Case (sObject = 'Inventory.Vendor_Part_ID')
+                    Send Activate_oVendorView
+                    Get Server of oVendorView to hoServer
+                    Send Clear of hoServer
+                    Set Field_Current_Value of hoServer Field Vendor.ID to iSectionId
+                    Send File_Field_AutoFind of hoServer File_Field Vendor.ID Eq
+                    Case Break
+            Case End
+        End
+    End_Procedure
+End_Class
+
+Class cInventoryReportResultsView is a cDRPreview
+    Procedure Construct_Object
+        Forward Send Construct_Object
+
+        Object oDRReport is a cInventoryDRReport
+            Delegate Set phoReport to Self
+            Set psReportName to "InventoryOverview.dr"
+            Set pePreviewStyle to C_DRPREVIEW_EMBEDDED
+        End_Object
+    End_Procedure
+
+    Procedure RunReport Number[] nUnitPrices
+        String sReportId
+        Integer iParameterId
+
+        Get OpenReport of oDRReport to sReportId
+        If (sReportId <> "") Begin
+            Set piReportLanguage of oDRReport '' to LANG_NEUTRAL
+            Send RemoveAllFilters of oDRReport sReportId
+            Set Label to (SFormat ("Inventory prices from %1 to %2", nUnitPrices[0], nUnitPrices[1]))
+            Send AddFilter of oDRReport sReportId "{Inventory.Unit_Price}" C_drGreaterThanOrEqual nUnitPrices[0]
+            Send AddFilter of oDRReport sReportId "{Inventory.Unit_Price}" C_drLessThanOrEqual nUnitPrices[1]
+            Get ParameterIdByName of oDRReport sReportId "ShowHyperlinkSimulation" to iParameterId
+            Set psParameterValue of oDRReport sReportId iParameterId to 1
+            Send DisplayReport of oDRReport
+        End
+    End_Procedure
+End_Class
+
+Deferred_View Activate_oInventoryReportView for ;
+Object oInventoryReportView is a ReportView
+    Set Size to 59 166
+    Set Location to 2 2
+    Set Label to "Inventory Report"
+    Set Icon to 'DR.Ico'
+
+    // Holds the handles of the dynamically created views
+    { DesignTime = False }
+    Property Handle[] phoResultViews
+
+    Object oInventory_DD is a cInventoryDataDictionary
+    End_Object
+
+    Object oUnitPriceGroup is a Group
+        Set Size to 33 155
+        Set Location to 5 5
+        Set Label to 'Unit Price'
+
+        // During activation of the group find out what the minimum and maximum price of the articles
+        // are. Shouldn't be used when the inventory table has thousands of articles
+        Procedure Activating
+            Number nMaxUnitPrice nMinUnitPrice
+            
+            Forward Send Activating
+
+            // Init the variables so that MAX and MIN below can do their work
+            Move 999999 to nMinUnitPrice
+            Move 0 to nMaxUnitPrice
+
+            Send Request_Read of oInventory_DD FIRST_RECORD Inventory.File_Number 1
+            While (Found)
+                Move (Inventory.Unit_Price max nMaxUnitPrice) to nMaxUnitPrice
+                Move (Inventory.Unit_Price min nMinUnitPrice) to nMinUnitPrice
+                Send Locate_Next of oInventory_DD
+            Loop
+
+            Set Value of oFromUnitPriceForm to nMinUnitPrice
+            Set Value of oToUnitPriceForm to nMaxUnitPrice
+        End_Procedure
+
+        Object oFromUnitPriceForm is a Form
+            Set Size to 13 50
+            Set Location to 11 29
+            Set Form_Datatype to Mask_Numeric_Window
+            Set Numeric_Mask 0 to 6 2
+            Set Label to "From:"
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+        End_Object
+
+        Object oToUnitPriceForm is a Form
+            Set Size to 13 50
+            Set Location to 11 97
+            Set Form_Datatype to Mask_Numeric_Window
+            Set Numeric_Mask 0 to 6 2
+            Set Label to "To:"
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+        End_Object
+    End_Object
+
+    Object oRunReportButton is a Button
+        Set Location to 40 110
+        Set Label to 'Run Report'
+        Set peAnchors to anBottomRight
+
+        // On each execution create a new preview window with report object.
+        Procedure OnClick
+            Handle hoClient hoResultsView
+            Handle[] hoResultViews
+            Number[2] nUnitPrices
+
+            Get phoResultViews to hoResultViews
+
+            Get Client_Id to hoClient
+            Get Create of hoClient (RefClass (cInventoryReportResultsView)) to hoResultsView
+            Move hoResultsView to hoResultViews[SizeOfArray (hoResultViews)]
+            Set phoResultViews to hoResultViews
+
+            Get Value of oFromUnitPriceForm to nUnitPrices[0]
+            Get Value of oToUnitPriceForm to nUnitPrices[1]
+            Send Activate_View of hoResultsView
+            Send RunReport of hoResultsView nUnitPrices
+        End_Procedure
+    End_Object
+
+    // Cleanup the list of dynamically created result views.
+    Procedure Close_Panel
+        Handle[] hoResultViews
+        Integer iElements iElement
+
+        Get phoResultViews to hoResultViews
+        Move (SizeOfArray (hoResultViews) - 1) to iElements
+        For iElement from 0 to iElements
+            Send Close_Panel of hoResultViews[iElement]
+            Send Destroy of hoResultViews[iElement]
+        Loop
+        Move (ResizeArray (hoResultViews, 0)) to hoResultViews
+        Set phoResultViews to hoResultViews
+
+        Forward Send Close_Panel
+    End_Procedure
+
+    On_Key Key_Escape Send Close_Panel
+Cd_End_Object

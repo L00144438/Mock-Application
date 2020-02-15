@@ -1,0 +1,288 @@
+Use cCJCommandBarSystem.pkg
+Use cDRReport.pkg
+Use DRExportOptions.dg
+Use DRStatuspanel.dg
+Use cDRCommandBarSystem.pkg
+Use cDRMenuItem.pkg
+Use cDRZoomMenuItem.pkg
+Use cDRCurrentPageMenuItem.pkg
+Use cDRExportMenuItem.pkg
+Use cDRPrintMenuItem.pkg
+Use cDRFirstPageMenuItem.pkg
+Use cDRPreviousPageMenuItem.pkg
+Use cDRNextPageMenuItem.pkg
+Use cDRLastPageMenuItem.pkg
+Use cDRRefreshMenuItem.pkg
+Use cDRPreviewWindow.pkg
+Use cDRSearchPreviewMenuItem.pkg
+Use cDRSearchPreviewOptionsMenuItem.pkg
+
+Object oDRModalPreview is a BasicPanel
+    Set Border_Style to Border_Thick
+    Set Label to C_$DRDataFlexReportsPreview
+    Set Location to 6 6
+    Set Size to 273 614
+    Set Popup_State to True
+    Set Modal_State to True
+    Set Icon to "DR.Ico"
+    
+    { Visibility = Private }
+    { Description = "Displays the icon" }
+    Procedure Page Integer iPageObject
+        Forward Send Page iPageObject
+        If (iPageObject <> 0) Begin
+            Set Icon to "dr.ico"
+        End
+    End_Procedure
+
+    { DesignTime = False }
+    { Description = "Will be used to store the object id of the cDRReport object" }
+    Property Handle phoReport 0
+    
+    Object oDRPreviewer is a cDRPreviewWindow
+        Set Size to 228 602
+        Set Location to 21 5
+        Set peAnchors to anAll
+    End_Object
+    
+    { Visibility = Private }
+    { Description = "Augmented to assign the window handle of the cDRPreviewWindow object to the OCX" }
+    Procedure Add_Focus Handle hoParent Returns Integer
+        Handle hoReport hWnd hoClient
+        String sReportId
+        
+        Forward Send Add_Focus hoParent
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Get psReportId of hoReport to sReportId
+            If (sReportId <> "") Begin
+                Get Window_Handle of oDRPreviewer to hWnd
+                If (hWnd <> 0) Begin
+                    Send DisplayStatusPanel of hoReport True
+                    Set PreviewWindowHandle of hoReport to hWnd 
+                    Send OnShowPreviewer of hoReport
+
+                    Get Window_Handle to hWnd
+                    If (hWnd <> 0) Begin
+                        Move (UpdateWindow (hWnd)) to hWnd
+                    End
+
+                    Send ComReportPreview of hoReport sReportId
+                    Send DisplayStatusPanel of hoReport False
+                End
+            End
+        End
+    End_Procedure
+
+    Object oCommandBars is a cDRCommandBarSystem
+#IF (!@>182)
+            Set pbAutoResizeIcons to True
+            
+#ENDIF
+        Object oDRToolBar is a cCJToolbar
+            Set pbCloseable to False
+            Set pbEnableDocking to False
+            Set pbGripper to False
+            Set peStretched to stStretch
+            Set pbDockNextTo to False
+            Set pbHideWrap to True
+            Set pbCustomizable to False
+
+            Object oFirstPage is a cDRFirstPageMenuItem
+            End_Object
+
+            Object oPreviousPage is a cDRPreviousPageMenuItem
+            End_Object
+
+            Object oCurrentPage is a cDRCurrentPageMenuItem
+                Set peControlType to xtpControlEdit
+            End_Object
+
+            Object oNextPage is a cDRNextPageMenuItem
+            End_Object
+
+            Object oLastPage is a cDRLastPageMenuItem
+            End_Object
+
+            Object oRefresh is a cDRRefreshMenuItem
+            End_Object
+
+            Object oPrint is a cDRPrintMenuItem
+            End_Object
+
+            Object oZoom is a cDRZoomMenuItem
+            End_Object
+
+            Object oExport is a cDRExportMenuItem
+                Set phoExportOptionsDialog to (oDRExportOptionsDialog)
+            End_Object
+            
+            Object oSearchInPreview is a cDRSearchPreviewMenuItem
+            End_Object
+            
+            Object oSearchInPreviewOptions is a cDRMenuItem
+                Set peControlType to xtpControlSplitButtonPopup
+                Set psCaption to C_$DRSearchInPreviewOptions
+                Set psTooltip to C_$DRSearchInPreviewOptionsTooltip
+                Set peControlStyle to xtpButtonIconAndCaption       
+                Set psImage to "DRFind.Ico"
+
+                Object oDownMenuItem is a cDRSearchPreviewOptionsMenuItem
+                    Set psCaption to C_$DRSearchInPreviewDown
+                    Set phmSearchOptionGet to (RefFunc (pbDown))
+                    Set phmSearchOptionSet to (RefProcSet (pbDown))
+                    Set phoSearchMenuItem to oSearchInPreview
+                End_Object
+
+                Object oWholeWordMenuItem is a cDRSearchPreviewOptionsMenuItem
+                    Set psCaption to C_$DRSearchInPreviewWholeWord
+                    Set phmSearchOptionGet to (RefFunc (pbWholeWord))
+                    Set phmSearchOptionSet to (RefProcSet (pbWholeWord))
+                    Set phoSearchMenuItem to oSearchInPreview
+                End_Object
+
+                Object oMatchCaseMenuItem is a cDRSearchPreviewOptionsMenuItem
+                    Set psCaption to C_$DRSearchInPreviewMatchCase
+                    Set phmSearchOptionGet to (RefFunc (pbMatchCase))
+                    Set phmSearchOptionSet to (RefProcSet (pbMatchCase))
+                    Set phoSearchMenuItem to oSearchInPreview
+                End_Object
+            End_Object
+        End_Object
+    End_Object
+
+    Object oCloseButton is a Button
+        Set Label to C_$Close
+        Set Location to 254 559
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Send Close_Panel
+        End_Procedure
+    End_Object
+    
+    Procedure OnPageChanged Integer iPage
+        Set psText of (oCurrentPage (oDRToolBar (oCommandBars))) to (String (iPage))
+    End_Procedure
+    
+    Procedure OnZoomChanged Integer iFactor
+        Set psText of (oZoom (oDRToolBar (oCommandBars))) to (String (iFactor) + "%")
+    End_Procedure
+
+    Procedure Exit_Application
+        Send Close_Panel
+    End_Procedure
+    
+    Procedure PreviewClick Integer wParam Integer lParam
+        Handle hoReport
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Send PreviewClick of hoReport wParam lParam
+        End
+    End_Procedure
+
+    Procedure PreviewNextPage
+        Handle hoReport
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Send PreviewNextPage of hoReport
+        End
+    End_Procedure
+
+    Procedure PreviewPreviousPage
+        Handle hoReport
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Send PreviewPreviousPage of hoReport
+        End
+    End_Procedure
+    
+    Procedure PreviewFirstPage
+        Handle hoReport
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Send PreviewFirstPage of hoReport
+        End
+    End_Procedure
+    
+    Procedure PreviewLastPage
+        Handle hoReport
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Send PreviewLastPage of hoReport
+        End
+    End_Procedure
+
+    Procedure PreviewPaint
+        Handle hoReport
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Send PreviewPaint of hoReport
+        End
+    End_Procedure
+    
+    Function piPreviewZoom Returns Integer
+        Handle hoReport
+        Integer iFactor
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Get piPreviewZoom of hoReport to iFactor
+            Function_Return iFactor
+        End
+    End_Function
+    
+    Procedure Set piPreviewZoom Integer iFactor
+        Handle hoReport
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Set piPreviewZoom of hoReport to iFactor
+        End
+    End_Procedure
+    
+    Procedure PreviewVScroll Integer iType Integer iPos
+        Handle hoReport
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Send PreviewVScroll of hoReport iType iPos
+        End
+    End_Procedure
+    
+    Procedure PreviewHScroll Integer iType Integer iPos
+        Handle hoReport
+        
+        Get phoReport to hoReport
+        If (hoReport <> 0) Begin
+            Send PreviewHScroll of hoReport iType iPos
+        End
+    End_Procedure
+
+    // Close the report when it the dialog is closed. Destroy the dialog.
+    { Visibility = Private }
+    Procedure Close_Panel
+        Handle hoReport
+        Integer iRet
+        
+        Get phoReport to hoReport
+        Get Object_Id of hoReport to hoReport // Check if this is still a valid handle
+        If (hoReport <> 0) Begin
+            Send OnClosePreviewer of hoReport
+            Send CancelReport of hoReport
+            Set PreviewWindowHandle of hoReport to 0 // reset
+        End
+
+        Forward Send Close_Panel
+    End_Procedure
+
+    On_Key kClose_Panel Send KeyAction of oCloseButton
+    On_Key Key_Escape Send KeyAction of oCloseButton
+End_Object

@@ -1,0 +1,169 @@
+Use cWebHtmlBox.pkg
+Use DRLanguage.Inc
+
+Register_Function GenerateReportHTML Returns String[]
+Register_Function GenerateDownloadLinks Returns String[]
+
+Enum_List
+    Define C_HTMLOUTPUT
+    Define C_IMAGEOUTPUT
+End_Enum_List
+
+Enum_List
+    Define C_TBCENTER
+    Define C_TBRIGHT
+    Define C_TBLEFT
+End_Enum_List
+
+{ OverrideProperty = psHtml Visibility = Private ClassLibrary = WebApp }
+Class cWebDRReportViewer is a cWebHtmlBox
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        { WebProperty = Client }
+        { Visibility = Private }
+        Property String psVersion "6.2.4.191"
+
+        { WebProperty = Client }
+        Property Integer piZoom 100
+
+        { WebProperty = Client }
+        { DesignTime = False }
+        Property Integer piPage 0
+        { WebProperty = Client }
+        { DesignTime = False }
+        Property Integer piPageCount 0
+
+        { WebProperty = Client }
+        Property Boolean pbShowToolbar True
+        { WebProperty = Client }
+        Property Boolean pbShowPrintButton True
+        { WebProperty = Client }
+        { EnumList = "C_HTMLOUTPUT, C_IMAGEOUTPUT" }
+        Property Integer peMode C_HTMLOUTPUT
+        { WebProperty = Client }
+        { EnumList = "C_TBCENTER, C_TBLEFT, C_TBRIGHT" }
+        Property Integer peToolbarAlignment C_TBCENTER
+
+        { WebProperty = Client }
+        Property Boolean pbServerOnOpenReport False
+        { WebProperty = Client }
+        Property String psClientOnOpenReport ""
+
+        { WebProperty = Client }
+        Property Boolean pbServerOnPageChange False
+        { WebProperty = Client }
+        Property String psClientOnPageChange ""
+
+        { WebProperty = Client }
+        Property Boolean pbServerOnClickActionLink False
+        { WebProperty = Client }
+        Property String psClientOnClickActionLink ""
+
+        Property Handle phoReport 0
+
+        //  Configure super classes
+        Set pbFillHeight to True
+        Set piColumnSpan to 0
+
+        WebSetResponsive piZoom rmMobilePortrait to 33
+        WebSetResponsive piZoom rmMobileLandscape to 50
+        WebSetResponsive piZoom rmTabletPortrait to 75
+
+        Set psJSClass to "DR.WebReportViewer"
+    End_Procedure
+
+    Procedure ShowReport
+        String[] aParams
+        String[][] sHTMLData
+        String[] sFileData
+        tWebValueTree tData
+        Handle hoReport
+        Integer eMode
+
+        // Get report object
+        Get phoReport to hoReport
+        If (hoReport > 0) Begin
+            WebGet peMode to eMode
+            Case Begin
+                Case (eMode = C_HTMLOUTPUT)
+                    // Generate HTML
+                    Get GenerateReportHTML of hoReport to sHTMLData
+                    ValueTreeSerializeParameter sHTMLData to tData
+                    Case Break
+                Case (eMode = C_IMAGEOUTPUT)
+                    // Generate Download Links
+                    Get GenerateDownloadLinks of hoReport to sFileData
+                    ValueTreeSerializeParameter sFileData to tData
+                    Case Break
+            Case End
+
+            // Reset page counts
+            WebSet piPage to 0
+            // Set via JavaScript
+            WebSet piPageCount to 0
+
+            // Send to the client
+            Send ClientAction "showReport" aParams tData
+        End
+        Else Begin
+            Error DFERR_OPERATOR_ERROR C_$DRphoReportDoesNotContainAValidReport
+        End
+    End_Procedure
+
+    Procedure NextPage
+        Integer iPages iPage
+
+        WebGet piPageCount to iPages
+        WebGet piPage to iPage
+
+        If (iPage < iPages) Begin
+            Increment iPage
+            WebSet piPage to iPage
+        End
+    End_Procedure
+
+    Procedure PrevPage
+        Integer iPages iPage
+
+        WebGet piPageCount to iPages
+        WebGet piPage to iPage
+
+        If (iPage > 1) Begin
+            Decrement iPage
+            WebSet piPage to iPage
+        End
+    End_Procedure
+
+    Procedure PrintReport
+        Send ClientAction "printReport"
+    End_Procedure
+
+    { MethodType = Event }
+    Procedure OnOpenReport
+    End_Procedure
+
+    { MethodType = Event }
+    Procedure OnPageChange
+    End_Procedure
+
+    { MethodType = Event }
+    Procedure OnClickActionLink String sData Integer eDataType
+    End_Procedure
+
+    Procedure ZoomIn
+        Send ClientAction "zoomIn"
+    End_Procedure
+	
+    Procedure ZoomOut
+        Send ClientAction "zoomOut"
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+
+        WebPublishProcedure OnOpenReport
+        WebPublishProcedure OnPageChange
+        WebPublishProcedure OnClickActionLink
+    End_Procedure
+End_Class

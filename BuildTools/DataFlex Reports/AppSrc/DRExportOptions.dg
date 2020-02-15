@@ -1,0 +1,1210 @@
+Use Windows.pkg
+Use File_dlg.pkg
+Use dfSpnFrm.pkg
+Use cDRAPI.pkg
+Use Dfcursor.pkg
+Use DRLanguage.Inc
+Use cDR.h.pkg
+Use cDRExportOptionsGroup.pkg
+
+Object oDRExportOptionsDialog is a ModalPanel
+    Set Size to 144 306
+    Set Label to C_$DREnterSelectExportOptions
+    Set piMinSize to 89 211
+    Set Location to 2 2
+    Set Border_Style to Border_Thick
+    Set Icon to "DR.Ico"
+
+    { DesignTime = False }
+    Property Handle phoReport
+
+    Object oSaveAsFileDialog is a SaveAsDialog
+        Set NoChangeDir_State to True
+        Set Dialog_Caption to C_$DRSelectEnterExportFileName
+    End_Object
+
+    Object oOKButton is a Button
+        Set Label to C_$OK
+        Set Location to 127 195
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Handle hoReport hWnd
+            Integer iExportToOption iRetval
+            String sFileName sOperation
+            Boolean bViewPDF
+
+            Get phoReport to hoReport
+            Get Value of oFileNameForm to sFileName
+
+            Get ExportToOption of oExportToComboForm to iExportToOption
+            Case Begin
+                Case (iExportToOption = C_DRPDF)
+                    Get CollectPDFExportOptions of oPDFOptionsGroup hoReport to bViewPDF
+                    Send ExportReport of hoReport C_DRPDF sFileName
+                    If (bViewPDF) Begin
+                        Get Window_Handle to hWnd
+                        Move "OPEN" to sOperation
+                        Move (DR_WinAPI_ShellExecute (hWnd, AddressOf (sOperation), AddressOf (sFileName), 0, 0, SW_SHOWDEFAULT)) to iRetval
+                    End
+                    Case Break
+                Case (iExportToOption = C_DRCSV)
+                    Send CollectCSVExportOptions of oCSVOptionsGroup hoReport
+                    Send ExportReport of hoReport C_DRCSV sFileName
+                    Case Break
+                Case (iExportToOption = C_DRImage)
+                    Send CollectImageOptions of oImageOptionsGroup hoReport
+                    Send ExportReport of hoReport C_DRImage sFileName
+                    Case Break
+                Case (iExportToOption = C_DRHTML)
+                    Send CollectHTMLOptions of oHTMLOptionsGroup hoReport
+                    Send ExportReport of hoReport C_DRHTML sFileName
+                    Case Break
+                Case (iExportToOption = C_DRXLS)
+                    Send CollectXLSOptions of oXLSOptionsGroup hoReport
+                    Send ExportReport of hoReport C_DRXLS sFileName
+                    Case Break
+                Case (iExportToOption = C_DRRTF)
+                    Send CollectRTFOptions of oRTFOptionsGroup hoReport
+                    Send ExportReport of hoReport C_DRRTF sFileName
+                    Case Break
+            Case End
+
+            Send Close_Panel
+        End_Procedure
+    End_Object
+
+    Object oCancelButton is a Button
+        Set Label to C_$Cancel
+        Set Location to 127 250
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Send Close_Panel
+        End_Procedure
+    End_Object
+
+    Object oExportToComboForm is a ComboForm
+        Set Size to 13 61
+        Set Location to 5 70
+        Set Entry_State to False
+        Set Combo_Sort_State to False
+        Set Label to C_$DRExportTo
+        Set Label_Justification_Mode to JMode_Right
+        Set Label_Col_Offset to 2
+
+        Procedure Combo_Fill_List
+            Send Combo_Add_Item C_$DRPDF
+            Send Combo_Add_Item C_$DRCSV
+            Send Combo_Add_Item C_$DRImage
+            Send Combo_Add_Item C_$DRHTML
+            Send Combo_Add_Item C_$DRXLS
+            Send Combo_Add_Item C_$DRRTF
+        End_Procedure
+
+        Procedure Activating
+            Handle hoReport
+            Integer eExportType
+            String sExportChoice
+
+            Forward Send Activating
+
+            Get phoReport to hoReport
+            Get peExportType of hoReport to eExportType
+            Get Combo_Value eExportType to sExportChoice
+            Set Value to sExportChoice
+        End_Procedure
+
+        Function ExportToOption Returns Integer
+            String sExportChoice
+            Integer iItem
+
+            Get Value to sExportChoice
+            Get Combo_Item_Matching sExportChoice to iItem
+
+            Function_Return iItem
+        End_Function
+
+        Procedure OnChange
+            Integer eOption
+
+            Get ExportToOption to eOption
+
+            Send ShowGroup of oPDFOptionsGroup (eOption = C_DRPDF)
+            Send ShowGroup of oCSVOptionsGroup (eOption = C_DRCSV)
+            Send ShowGroup of oImageOptionsGroup (eOption = C_DRImage)
+            Send ShowGroup of oHTMLOptionsGroup (eOption = C_DRHTML)
+            Send ShowGroup of oXLSOptionsGroup (eOption = C_DRXLS)
+            Send ShowGroup of oRTFOptionsGroup (eOption = C_DRRTF)
+        End_Procedure
+    End_Object
+
+    Object oFileNameForm is a Form
+        Set Size to 13 231
+        Set Location to 20 70
+        Set Prompt_Button_Mode to PB_PromptOn
+        Set Label to C_$DRFileName
+        Set Label_Justification_Mode to JMode_Right
+        Set Label_Col_Offset to 2
+        Set peAnchors to anTopLeftRight
+
+        Procedure CheckFileExtension String sExtension
+            String sFileName sFileExtension
+
+            Get Value to sFileName
+            Get DRPathFindExtension sFileName to sFileExtension
+            Move (Lowercase (sFileExtension)) to sFileExtension
+            If (sFileExtension <> sExtension) Begin
+                Move (sFileName - sExtension) to sFileName
+                Set Value to sFileName
+            End
+        End_Procedure
+
+        Procedure Activating
+            Handle hoReport
+            String sFileName
+
+            Forward Send Activating
+
+            Get phoReport to hoReport
+            Get psExportFileName of hoReport to sFileName
+            Set Value to sFileName
+        End_Procedure
+
+        Procedure OnChange
+            String sFileName
+            Boolean bEnabled
+
+            Get Value to sFileName
+            Move (sFileName <> "") to bEnabled
+
+            Set Enabled_State of oOKButton to bEnabled
+        End_Procedure
+
+        Procedure Prompt
+            Integer iExportToOption iImageType
+            String sFileName
+            Boolean bSelected
+
+            Get ExportToOption of oExportToComboForm to iExportToOption
+
+            Case Begin
+                Case (iExportToOption = C_DRPDF)
+                    Set Filter_String of oSaveAsFileDialog to C_$DRPDFFileExtensionsFilter
+                    Set Filter_Index of oSaveAsFileDialog to 1
+                    Case Break
+                Case (iExportToOption = C_DRCSV)
+                    Set Filter_String of oSaveAsFileDialog to C_$DRCSVFileExtensionsFilter
+                    Set Filter_Index of oSaveAsFileDialog to 1
+                    Case Break
+                Case (iExportToOption = C_DRImage)
+                    Set Filter_String of oSaveAsFileDialog to C_$DRJPGFileExtensionsFilter
+                    Get ImageType of oImageTypeComboForm to iImageType
+                    Set Filter_Index of oSaveAsFileDialog to iImageType
+                    Case Break
+                Case (iExportToOption = C_DRHTML)
+                    Set Filter_String of oSaveAsFileDialog to C_$DRHTMLFileExtensionsFilter
+                    Set Filter_Index of oSaveAsFileDialog to 1
+                    Case Break
+                Case (iExportToOption = C_DRXLS)
+                    Set Filter_String of oSaveAsFileDialog to C_$DRXLSFileExtensionsFilter
+                    Set Filter_Index of oSaveAsFileDialog to 1
+                    Case Break
+                Case (iExportToOption = C_DRRTF)
+                    Set Filter_String of oSaveAsFileDialog to C_$DRRTFFileExtensionsFilter
+                    Set Filter_Index of oSaveAsFileDialog to 1
+                    Case Break
+            Case End
+
+            Get Value to sFileName
+            Set File_Title of oSaveAsFileDialog to sFileName
+            Get Show_Dialog of oSaveAsFileDialog to bSelected
+            If (bSelected) Begin
+                Get File_Name of oSaveAsFileDialog to sFileName
+                Set Value to sFileName
+            End
+        End_Procedure
+    End_Object
+
+    Object oPDFOptionsGroup is a cDRExportOptionsGroup
+        Set Size to 90 295
+        Set Location to 35 5
+        Set Label to C_$DRPDFOptions
+        Set peAnchors to anTopLeftRight
+
+        Function CollectPDFExportOptions Handle hoReport Returns Boolean
+            drPDFExportOptions PDFExportOptions
+            Boolean bViewPDF
+            Integer iPages
+
+            Send CheckFileExtension of oFileNameForm ".pdf"
+
+            Get DefaultPDFExportOptions of hoReport to PDFExportOptions
+            Get PDFType of oPDFTypeComboForm to PDFExportOptions.iPDFType
+            Get PageMode of oPageModeComboForm to PDFExportOptions.iPageMode
+            Get Value of oOwnerPasswordForm to PDFExportOptions.sOwnerPassword
+            Get Value of oUserPasswordForm to PDFExportOptions.sUserPassword
+            Get ImageQuality of oImageQualityComboForm to PDFExportOptions.iImageQuality
+            Get Checked_State of oAllPagesCheckBox to PDFExportOptions.bAllPages
+            Get Value of oPageSpinForm to PDFExportOptions.iPage
+            If (not (PDFExportOptions.bAllPages)) Begin
+                Get ReportPageCount of hoReport to iPages
+                Move ((PDFExportOptions.iPage max 1) min iPages) to PDFExportOptions.iPage
+            End
+            Set pPDFExportOptions of hoReport to PDFExportOptions
+            Get Checked_State of oOpenPDFCheckBox to bViewPDF
+
+            Function_Return bViewPDF
+        End_Function
+
+        Object oPageModeComboForm is a ComboForm
+            Set Size to 13 69
+            Set Location to 11 65
+            Set Entry_State to False
+            Set Combo_Sort_State to False
+            Set Label to C_$DRPageMode
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Col_Offset to 2
+
+            Procedure Activating
+                drPDFExportOptions PDFExportOptions
+                Handle hoReport
+                String sValue
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultPDFExportOptions of hoReport to PDFExportOptions
+                Get Combo_Value PDFExportOptions.iPageMode to sValue
+                Set Value to sValue
+            End_Procedure
+
+            Function PageMode Returns Integer
+                String sPageMode
+                Integer iPageMode
+
+                Get Value to sPageMode
+                Get Combo_Item_Matching sPageMode to iPageMode
+
+                Function_Return iPageMode
+            End_Function
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item C_$DRNormal
+                Send Combo_Add_Item C_$DROutline
+                Send Combo_Add_Item C_$DRThumbs
+                Send Combo_Add_Item C_$DRFullScreen
+            End_Procedure
+        End_Object
+
+        Object oAllPagesCheckBox is a CheckBox
+            Set Size to 12 64
+            Set Location to 11 144
+            Set Label to C_$DRAllPages
+
+            Procedure Activating
+                drPDFExportOptions PDFExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultPDFExportOptions of hoReport to PDFExportOptions
+                Set Checked_State to PDFExportOptions.bAllPages
+            End_Procedure
+
+            Procedure OnChange
+                Boolean bChecked
+
+                Get Checked_State to bChecked
+
+                Set Enabled_State of oPageSpinForm to (not (bChecked))
+            End_Procedure
+        End_Object
+
+        Object oPageSpinForm is a SpinForm
+            Set Size to 13 49
+            Set Location to 11 235
+            Set Label to C_$DRPageNumber
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Shadow_Display_Mode to TBSHADOW_ON_NONE
+            Set Value to 1
+            Set Minimum_Position to 1
+
+            Procedure Activating
+                drPDFExportOptions PDFExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultPDFExportOptions of hoReport to PDFExportOptions
+                Set Value to PDFExportOptions.iPage
+            End_Procedure
+        End_Object
+
+        Object oOwnerPasswordForm is a Form
+            Set Size to 13 219
+            Set Location to 26 65
+            Set Label to C_$DROwnerPassword
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Col_Offset to 2
+            Set Password_State to True
+            Set peAnchors to anTopLeftRight
+            Set psToolTip to C_$DRPasswordPDFOwner
+
+            Procedure Activating
+                drPDFExportOptions PDFExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultPDFExportOptions of hoReport to PDFExportOptions
+                Set Value to PDFExportOptions.sOwnerPassword
+            End_Procedure
+        End_Object
+
+        Object oUserPasswordForm is a Form
+            Set Size to 13 219
+            Set Location to 41 65
+            Set Label to C_$DRUserPassword
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Col_Offset to 2
+            Set Password_State to True
+            Set peAnchors to anTopLeftRight
+            Set psToolTip to C_$DRPasswordPDFUser
+
+            Procedure Activating
+                drPDFExportOptions PDFExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultPDFExportOptions of hoReport to PDFExportOptions
+                Set Value to PDFExportOptions.sUserPassword
+            End_Procedure
+        End_Object
+
+        Object oImageQualityComboForm is a ComboForm
+            Set Size to 13 69
+            Set Location to 56 65
+            Set Entry_State to False
+            Set Label to C_$DRImgQuality
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Combo_Sort_State to False
+            Set psToolTip to C_$DRImageQuality
+
+            Procedure Activating
+                drPDFExportOptions PDFExportOptions
+                Handle hoReport
+                String sValue
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultPDFExportOptions of hoReport to PDFExportOptions
+                Get Combo_Value PDFExportOptions.iImageQuality to sValue
+                Set Value to sValue
+            End_Procedure
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item C_$DRLow
+                Send Combo_Add_Item C_$DRHigh
+            End_Procedure
+
+            Function ImageQuality Returns Integer
+                String sQuality
+                Integer iQuality
+
+                Get Value to sQuality
+                Get Combo_Item_Matching sQuality to iQuality
+
+                Function_Return iQuality
+            End_Function
+        End_Object
+
+        Object oOpenPDFCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 59 174
+            Set Label to C_$DRViewPDF
+            Set psToolTip to C_$DRViewPDFToolTip
+            Set Checked_State to True
+        End_Object
+
+        Object oPDFTypeComboForm is a ComboForm
+            Set Size to 13 69
+            Set Location to 71 65
+            Set Entry_State to False
+            Set Label to C_$DRPDFType
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Combo_Sort_State to False
+            Set psToolTip to C_$DRPDFType
+
+            Procedure Activating
+                drPDFExportOptions PDFExportOptions
+                Handle hoReport
+                String sValue
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultPDFExportOptions of hoReport to PDFExportOptions
+                Get Combo_Value PDFExportOptions.iPDFType to sValue
+                Set Value to sValue
+            End_Procedure
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item C_$DRPDFNormal
+                Send Combo_Add_Item C_$DRPDFA
+            End_Procedure
+
+            Function PDFType Returns Integer
+                String sType
+                Integer iType
+
+                Get Value to sType
+                Get Combo_Item_Matching sType to iType
+
+                Function_Return iType
+            End_Function
+        End_Object
+    End_Object
+
+    Object oCSVOptionsGroup is a cDRExportOptionsGroup
+        Set Size to 74 295
+        Set Location to 35 5
+        Set Label to C_$DRCSVOptions
+        Set peAnchors to anTopLeftRight
+
+        Procedure CollectCSVExportOptions Handle hoReport
+            drCSVExportOptions CSVExportOptions
+            Integer iPages
+
+            Send CheckFileExtension of oFileNameForm ".csv"
+
+            Get DefaultCSVExportOptions of hoReport to CSVExportOptions
+            Get Value of oCharacterDelimiterForm to CSVExportOptions.cFieldSeparator
+            Get Value of oValueSeparatorForm to CSVExportOptions.cFieldDelimiter
+            Get Checked_State of oExportGroupSectionsCheckBox to CSVExportOptions.bExportGroupSections
+            Get Checked_State of oExportPageSectionsCheckBox to CSVExportOptions.bExportPageSections
+            Get Checked_State of oExportReportSectionsCheckBox to CSVExportOptions.bExportReportSections
+            Get Checked_State of oAllPagesCheckBox to CSVExportOptions.bAllPages
+            Get Value of oPageSpinForm to CSVExportOptions.iPage
+            If (not (CSVExportOptions.bAllPages)) Begin
+                Get ReportPageCount of hoReport to iPages
+                Move ((CSVExportOptions.iPage max 1) min iPages) to CSVExportOptions.iPage
+            End
+            Set pCSVExportOptions of hoReport to CSVExportOptions
+        End_Procedure
+
+        Object oCharacterDelimiterForm is a Form
+            Set Size to 13 40
+            Set Location to 11 80
+            Set Label to C_$DRDelimiter
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Col_Offset to 2
+
+            Procedure Activating
+                drCSVExportOptions CSVExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultCSVExportOptions of hoReport to CSVExportOptions
+                Set Value to CSVExportOptions.cFieldDelimiter
+            End_Procedure
+        End_Object
+
+        Object oValueSeparatorForm is a Form
+            Set Size to 13 40
+            Set Location to 26 80
+            Set Label to C_$DRSeparator
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Col_Offset to 2
+
+            Procedure Activating
+                drCSVExportOptions CSVExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultCSVExportOptions of hoReport to CSVExportOptions
+                Set Value to CSVExportOptions.cFieldSeparator
+            End_Procedure
+        End_Object
+
+        Object oExportPageSectionsCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 11 140
+            Set Label to C_$DRExportPageSections
+            Set psToolTip to C_$DRExportsPageHeaderAndFooterDetailInformation
+
+            Procedure Activating
+                drCSVExportOptions CSVExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultCSVExportOptions of hoReport to CSVExportOptions
+                Set Checked_State to CSVExportOptions.bExportPageSections
+            End_Procedure
+        End_Object
+
+        Object oExportGroupSectionsCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 23 140
+            Set Label to C_$DRExportGroupSections
+            Set psToolTip to C_$DRExportGroupHeaderAndFooterDetailInformation
+
+            Procedure Activating
+                drCSVExportOptions CSVExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultCSVExportOptions of hoReport to CSVExportOptions
+                Set Checked_State to CSVExportOptions.bExportGroupSections
+            End_Procedure
+        End_Object
+
+        Object oExportReportSectionsCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 35 140
+            Set Label to C_$DRExportReportSections
+            Set psToolTip to C_$DRExportsReportHeaderAndFooterDetailInformation
+
+            Procedure Activating
+                drCSVExportOptions CSVExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultCSVExportOptions of hoReport to CSVExportOptions
+                Set Checked_State to CSVExportOptions.bExportReportSections
+            End_Procedure
+        End_Object
+
+        Object oAllPagesCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 47 140
+            Set Label to C_$DRAllPages
+
+            Procedure Activating
+                drCSVExportOptions CSVExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultCSVExportOptions of hoReport to CSVExportOptions
+                Set Checked_State to CSVExportOptions.bAllPages
+            End_Procedure
+
+            Procedure OnChange
+                Boolean bChecked
+
+                Get Checked_State to bChecked
+
+                Set Enabled_State of oPageSpinForm to (not (bChecked))
+            End_Procedure
+        End_Object
+
+        Object oPageSpinForm is a SpinForm
+            Set Size to 13 49
+            Set Location to 41 80
+            Set Label to C_$DRPageNumber
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Shadow_Display_Mode to TBSHADOW_ON_NONE
+            Set Value to 1
+            Set Minimum_Position to 1
+
+            Procedure Activating
+                drCSVExportOptions CSVExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultCSVExportOptions of hoReport to CSVExportOptions
+                Set Value to CSVExportOptions.iPage
+                Set Enabled_State to (not (CSVExportOptions.bAllPages))
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oImageOptionsGroup is a cDRExportOptionsGroup
+        Set Size to 43 295
+        Set Location to 35 5
+        Set Label to C_$DRImageOptions
+        Set peAnchors to anTopLeftRight
+
+        Procedure CollectImageOptions Handle hoReport
+            DRImageExportOptions ImageExportOptions
+            Integer iPages
+
+            Get DefaultImageExportOptions of hoReport to ImageExportOptions
+            Get ImageType of oImageTypeComboForm to ImageExportOptions.iImageType
+            Case Begin
+                Case (ImageExportOptions.iImageType = C_drJPEG)
+                    Send CheckFileExtension of oFileNameForm ".jpg"
+                    Case Break
+                Case (ImageExportOptions.iImageType = C_drGIF)
+                    Send CheckFileExtension of oFileNameForm ".gif"
+                    Case Break
+                Case (ImageExportOptions.iImageType = C_drTIFF)
+                    Send CheckFileExtension of oFileNameForm ".tiff"
+                    Case Break
+                Case (ImageExportOptions.iImageType = C_drPNG)
+                    Send CheckFileExtension of oFileNameForm ".png"
+                    Case Break
+            Case End
+            Get Checked_State of oMultiPageCheckBox to ImageExportOptions.bMultiPage
+            Get Value of oPageSpinForm to ImageExportOptions.iPage
+            If (not (ImageExportOptions.bMultiPage)) Begin
+                Get ReportPageCount of hoReport to iPages
+                Move ((ImageExportOptions.iPage max 1) min iPages) to ImageExportOptions.iPage
+            End
+            Set pImageExportOptions of hoReport to ImageExportOptions
+        End_Procedure
+
+        Object oImageTypeComboForm is a ComboForm
+            Set Size to 13 100
+            Set Location to 11 65
+            Set Entry_State to False
+            Set Combo_Sort_State to False
+            Set Label to C_$DRType
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+
+            Procedure Activating
+                drImageExportOptions ImageExportOptions
+                Handle hoReport
+                String sValue
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultImageExportOptions of hoReport to ImageExportOptions
+                Get Combo_Value of oImageTypeComboForm ImageExportOptions.iImageType to sValue
+                Set Value of oImageTypeComboForm to sValue
+            End_Procedure
+
+            Function ImageType Returns Integer
+                String sImageType
+                Integer iImageType
+
+                Get Value to sImageType
+                Get Combo_Item_Matching sImageType to iImageType
+                Increment iImageType // DR Image constants start at 1
+
+                Function_Return iImageType
+            End_Function
+
+            Procedure OnChange
+                Integer iImageType
+
+                Get ImageType to iImageType
+                Set Enabled_State of oMultiPageCheckBox to (iImageType = C_DRTIFF)
+            End_Procedure
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item C_$DRJPEG
+                Send Combo_Add_Item C_$DRGIF
+                Send Combo_Add_Item C_$DRTIFF
+                Send Combo_Add_Item C_$DRPNG
+            End_Procedure
+        End_Object
+
+        Object oMultiPageCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 11 185
+            Set Label to C_$DRMultiPage
+
+            Procedure Activating
+                drImageExportOptions ImageExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultImageExportOptions of hoReport to ImageExportOptions
+                Set Value to ImageExportOptions.bMultiPage
+            End_Procedure
+        End_Object
+
+        Object oPageSpinForm is a SpinForm
+            Set Size to 13 49
+            Set Location to 26 65
+            Set Label to C_$DRPageNumber
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Value to 1
+            Set Minimum_Position to 1
+
+            Procedure Activating
+                drImageExportOptions ImageExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultImageExportOptions of hoReport to ImageExportOptions
+                Set Value to ImageExportOptions.iPage
+            End_Procedure
+        End_Object
+
+        Object oPageCountButton is a Button
+            Set Size to 14 65
+            Set Location to 26 120
+            Set Label to C_$DRPageCount
+
+            Procedure OnClick
+                Handle hoReport
+                Integer iPages
+
+                Send Cursor_Wait of Cursor_Control
+                Get phoReport to hoReport
+                Get ReportPageCount of hoReport to iPages
+                Set Value of oPageSpinForm to iPages
+                Set Maximum_Position of oPageSpinForm to iPages
+                Send Cursor_Ready of Cursor_Control
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oHTMLOptionsGroup is a cDRExportOptionsGroup
+        Set Size to 43 295
+        Set Location to 35 5
+        Set Label to C_$DRHTMLOptions
+        Set peAnchors to anTopLeftRight
+
+        Procedure CollectHTMLOptions Handle hoReport
+            drHTMLExportOptions HTMLExportOptions
+            Integer iPages
+
+            Send CheckFileExtension of oFileNameForm ".html"
+
+            Get DefaultHTMLExportOptions of hoReport to HTMLExportOptions
+            Get Checked_State of oMultiPageCheckBox to HTMLExportOptions.bMultiPage
+            Get Value of oPageSpinForm to HTMLExportOptions.iPage
+            If (not (HTMLExportOptions.bMultiPage)) Begin
+                Get ReportPageCount of hoReport to iPages
+                Move ((HTMLExportOptions.iPage max 1) min iPages) to HTMLExportOptions.iPage
+            End
+            Set pHTMLExportOptions of hoReport to HTMLExportOptions
+        End_Procedure
+
+        Object oMultiPageCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 11 50
+            Set Label to C_$DRMultiPage
+
+            Procedure Activating
+                drHTMLExportOptions HTMLExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultHTMLExportOptions of hoReport to HTMLExportOptions
+                Set Checked_State to HTMLExportOptions.bMultiPage
+            End_Procedure
+        End_Object
+
+        Object oPageSpinForm is a SpinForm
+            Set Size to 13 49
+            Set Location to 26 50
+            Set Label to C_$DRPageNumber
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Value to 1
+            Set Minimum_Position to 1
+
+            Procedure Activating
+                drHTMLExportOptions HTMLExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultHTMLExportOptions of hoReport to HTMLExportOptions
+                Set Value to HTMLExportOptions.iPage
+            End_Procedure
+        End_Object
+
+        Object oPageCountButton is a Button
+            Set Location to 26 104
+            Set Label to C_$DRPageCount
+
+            Procedure OnClick
+                Handle hoReport
+                Integer iPages
+
+                Send Cursor_Wait of Cursor_Control
+                Get phoReport to hoReport
+                Get ReportPageCount of hoReport to iPages
+                Set Value of oPageSpinForm to iPages
+                Set Maximum_Position of oPageSpinForm to iPages
+                Send Cursor_Ready of Cursor_Control
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oXLSOptionsGroup is a cDRExportOptionsGroup
+        Set Size to 74 295
+        Set Location to 35 5
+        Set Label to C_$DRXLSOptions
+        Set peAnchors to anTopLeftRight
+
+        Procedure CollectXLSOptions Handle hoReport
+            drXLSExportOptions XLSExportOptions
+            Integer iPages
+
+            Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+            Get XLSVersion of oXLSVersionComboForm to XLSExportOptions.iXLSVersion
+            Get NewSheetsOption of oNewSheetsComboForm to XLSExportOptions.iNewSheet
+            Get Value of oColumnWidthForm to XLSExportOptions.iColumnWidth
+            Get Checked_State of oPageSectionsCheckBox to XLSExportOptions.bExportPageSections
+            Get Checked_State of oReportSectionsCheckBox to XLSExportOptions.bExportReportSections
+            Get Checked_State of oGroupSectionsCheckBox to XLSExportOptions.bExportGroupSections
+            Get Checked_State of oDataOnlyCheckBox to XLSExportOptions.bExportDataOnly
+            Get Checked_State of oAllPagesCheckBox to XLSExportOptions.bAllPages
+            Get Value of oPageSpinForm to XLSExportOptions.iPage
+            If (not (XLSExportOptions.bAllPages)) Begin
+                Get ReportPageCount of hoReport to iPages
+                Move ((XLSExportOptions.iPage max 1) min iPages) to XLSExportOptions.iPage
+            End
+
+            If (XLSExportOptions.iXLSVersion = C_drXLS2003) Begin
+                Send CheckFileExtension of oFileNameForm ".xls"
+            End
+            Else Begin
+                Send CheckFileExtension of oFileNameForm ".xlsx"
+            End
+
+            Set pXLSExportOptions of hoReport to XLSExportOptions
+        End_Procedure
+
+        Object oXLSVersionComboForm is a ComboForm
+            Set Size to 12 80
+            Set Location to 11 70
+            Set Entry_State 0 to False
+            Set Label to C_$DRXLSVersion
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Col_Offset to 2
+            Set Combo_Sort_State to False
+
+            Procedure Activating
+                drXLSExportOptions XLSExportOptions
+                Handle hoReport
+                String sValue
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+                Get Combo_Value XLSExportOptions.iXLSVersion to sValue
+                Set Value to sValue
+            End_Procedure
+
+            Function XLSVersion Returns Integer
+                String sValue
+                Integer iItem
+
+                Get Value to sValue
+                Get Combo_Item_Matching sValue to iItem
+
+                Function_Return iItem
+            End_Function
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item C_$DRXLS2003
+                Send Combo_Add_Item C_$DRXLS2007
+            End_Procedure
+        End_Object
+
+        Object oNewSheetsComboForm is a ComboForm
+            Set Size to 12 80
+            Set Location to 25 70
+            Set Entry_State 0 to False
+            Set Label to C_$DRXLSNewSheets
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Combo_Sort_State to False
+
+            Procedure Activating
+                drXLSExportOptions XLSExportOptions
+                Handle hoReport
+                String sValue
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+                Get Combo_Value XLSExportOptions.iNewSheet to sValue
+                Set Value to sValue
+            End_Procedure
+
+            Function NewSheetsOption Returns Integer
+                String sValue
+                Integer iItem
+
+                Get Value to sValue
+                Get Combo_Item_Matching sValue to iItem
+
+                Function_Return iItem
+            End_Function
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item C_$DRXLSNoSheets
+                Send Combo_Add_Item C_$DRXLSSheetsPage
+            End_Procedure
+        End_Object
+
+        Object oColumnWidthForm is a Form
+            Set Size to 13 33
+            Set Location to 39 70
+            Set Form_Datatype to 0
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Label to C_$DRXLSColumnWidth
+
+            Procedure Activating
+                drXLSExportOptions XLSExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+                Set Value to XLSExportOptions.iColumnWidth
+            End_Procedure
+        End_Object
+
+        Object oPageSpinForm is a SpinForm
+            Set Size to 13 49
+            Set Location to 54 70
+            Set Label to C_$DRPageNumber
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Shadow_Display_Mode to TBSHADOW_ON_NONE
+            Set Value to 1
+            Set Minimum_Position to 1
+
+            Procedure Activating
+                drXLSExportOptions XLSExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+                Set Value to XLSExportOptions.iPage
+                Set Enabled_State to (not (XLSExportOptions.bAllPages))
+            End_Procedure
+        End_Object
+
+        Object oPageSectionsCheckBox is a CheckBox
+            Set Size to 13 56
+            Set Location to 11 161
+            Set Label to C_$DRXLSPageSections
+
+            Procedure Activating
+                drXLSExportOptions XLSExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+                Set Checked_State to XLSExportOptions.bExportPageSections
+            End_Procedure
+        End_Object
+
+        Object oDataOnlyCheckBox is a CheckBox
+            Set Size to 13 44
+            Set Location to 23 161
+            Set Label to C_$DRXLSDataOnly
+
+            Procedure Activating
+                drXLSExportOptions XLSExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+                Set Checked_State to XLSExportOptions.bExportDataOnly
+            End_Procedure
+        End_Object
+
+        Object oReportSectionsCheckBox is a CheckBox
+            Set Size to 13 61
+            Set Location to 35 161
+            Set Label to C_$DRXLSReportSections
+
+            Procedure Activating
+                drXLSExportOptions XLSExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+                Set Checked_State to XLSExportOptions.bExportReportSections
+            End_Procedure
+        End_Object
+
+        Object oGroupSectionsCheckBox is a CheckBox
+            Set Size to 13 60
+            Set Location to 47 161
+            Set Label to C_$DRXLSGroupSections
+
+            Procedure Activating
+                drXLSExportOptions XLSExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+                Set Checked_State to XLSExportOptions.bExportGroupSections
+            End_Procedure
+        End_Object
+
+        Object oAllPagesCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 59 161
+            Set Label to C_$DRAllPages
+
+            Procedure Activating
+                drXLSExportOptions XLSExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultXLSExportOptions of hoReport to XLSExportOptions
+                Set Checked_State to XLSExportOptions.bAllPages
+            End_Procedure
+
+            Procedure OnChange
+                Boolean bChecked
+
+                Get Checked_State to bChecked
+
+                Set Enabled_State of oPageSpinForm to (not (bChecked))
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oRTFOptionsGroup is a cDRExportOptionsGroup
+        Set Size to 43 295
+        Set Location to 35 5
+        Set Label to C_$DRRTFOptions
+        Set peAnchors to anTopLeftRight
+
+        Procedure CollectRTFOptions Handle hoReport
+            drRTFExportOptions RTFExportOptions
+            Integer iPages
+
+            Send CheckFileExtension of oFileNameForm ".rtf"
+
+            Get DefaultRTFExportOptions of hoReport to RTFExportOptions
+            Get Checked_State of oAllPagesCheckBox to RTFExportOptions.bAllPages
+            Get Value of oPageSpinForm to RTFExportOptions.iPage
+            If (not (RTFExportOptions.bAllPages)) Begin
+                Get ReportPageCount of hoReport to iPages
+                Move ((RTFExportOptions.iPage max 1) min iPages) to RTFExportOptions.iPage
+            End
+            Set pRTFExportOptions of hoReport to RTFExportOptions
+        End_Procedure
+
+        Object oAllPagesCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 11 50
+            Set Label to C_$DRAllPages
+
+            Procedure Activating
+                drRTFExportOptions RTFExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultRTFExportOptions of hoReport to RTFExportOptions
+                Set Checked_State to RTFExportOptions.bAllPages
+            End_Procedure
+
+            Procedure OnChange
+                Boolean bChecked
+
+                Get Checked_State to bChecked
+
+                Set Enabled_State of oPageSpinForm to (not (bChecked))
+            End_Procedure
+        End_Object
+
+        Object oPageSpinForm is a SpinForm
+            Set Size to 13 49
+            Set Location to 26 50
+            Set Label to C_$DRPageNumber
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Shadow_Display_Mode to TBSHADOW_ON_NONE
+            Set Value to 1
+            Set Minimum_Position to 1
+
+            Procedure Activating
+                drRTFExportOptions RTFExportOptions
+                Handle hoReport
+
+                Forward Send Activating
+
+                Get phoReport to hoReport
+                Get DefaultRTFExportOptions of hoReport to RTFExportOptions
+                Set Value to RTFExportOptions.iPage
+            End_Procedure
+        End_Object
+
+        Object oPageCountButton is a Button
+            Set Location to 26 104
+            Set Label to C_$DRPageCount
+
+            Procedure OnClick
+                Handle hoReport
+                Integer iPages
+
+                Send Cursor_Wait of Cursor_Control
+                Get phoReport to hoReport
+                Get ReportPageCount of hoReport to iPages
+                Set Value of oPageSpinForm to iPages
+                Set Maximum_Position of oPageSpinForm to iPages
+                Send Cursor_Ready of Cursor_Control
+            End_Procedure
+        End_Object
+    End_Object
+
+    Procedure ExportReport Handle hoReport
+        Set phoReport to hoReport
+
+        Set Enabled_State of oOKButton to False
+
+        Send Popup_Modal
+    End_Procedure
+
+    On_Key Key_Alt+Key_O Send KeyAction of oOKButton
+    On_Key Key_Alt+Key_C Send KeyAction of oCancelButton
+    On_Key Key_Escape Send KeyAction of oCancelButton
+End_Object

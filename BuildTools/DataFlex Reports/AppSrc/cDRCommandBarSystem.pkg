@@ -1,0 +1,51 @@
+Use cCJCommandBarSystem.pkg
+
+{ ClassLibrary = Windows }
+Class cDRCommandBarSystem is a cCJCommandBarSystem
+    Procedure OnCreate
+        Integer eTheme
+
+        // Apply the same visual theme used by the global commandbars
+        If (ghoCommandBars) Begin
+            Get peVisualTheme of ghoCommandBars to eTheme
+            Set peVisualTheme to eTheme
+        End
+
+        Set pbAutoResizeIcons to True
+
+        Forward Send OnCreate
+    End_Procedure
+
+    // The buddybuttonclick is as feature not
+    Procedure BuddyButtonClicked Variant vControl
+        // Empty stub in case there is no control that understands the message
+    End_Procedure
+
+    // Augmented to see if the user clicked a buddy button item in one of the commandbar controls. If
+    // clicked send the buddybuttonclicked message to the control.
+    Procedure OnComControlNotify Variant vControl Integer iCode Variant vNotifyData Variant vHandled
+        Handle hoControl hoAction hoActionPointer
+        Variant vAction
+
+        If (iCode = XTP_EN_BUDDYBUTTONCLICK) Begin
+            Get Create (RefClass (cCJCommandBarControl)) to hoControl
+            Get Create (RefClass (cCJCommandBarAction)) to hoAction
+
+            Set pvComObject of hoControl to vControl
+            Get ComAction of hoControl to vAction
+
+            If (not (IsNullComObject (vAction))) Begin
+                Set pvComObject of hoAction to vAction
+                // Contains the object ID of the control
+                Get ComTag of hoAction to hoActionPointer
+            End
+
+            Send Destroy of hoAction
+            Send Destroy of hoControl
+
+            If (hoActionPointer <> 0) Begin
+                Send BuddyButtonClicked of hoActionPointer vControl
+            End
+        End
+    End_Procedure
+End_Class

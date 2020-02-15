@@ -1,0 +1,124 @@
+Use cDRMenuItem.pkg
+Use DRLanguage.Inc
+
+{ ClassLibrary = Windows }
+Class cDRZoomMenuItem is a cDRMenuItem
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        Set peControlType to xtpControlComboBox
+        Set peControlStyle to xtpButtonCaption
+        Set psCaption to C_$DRZoom
+        Set pbControlBeginGroup to True        
+    End_Procedure
+    
+    Procedure OnCreateControl Handle hoCombo
+        Set ComDropDownListStyle of hoCombo to True
+        Set ComEditStyle of hoCombo to xtpEditStyleRight
+        Send FillComboList hoCombo
+    End_Procedure
+
+    Procedure AddComboItem Handle hoCombo Integer iZoomPercentage Integer iIndex Integer ByRef iMaxTextWidth
+        Integer iTextSize
+        String sText
+        
+        Case Begin
+            Case (iZoomPercentage = -1)
+                Move C_$DRZoomPageWidth to sText
+                Case Break
+            Case (iZoomPercentage = -2)
+                Move C_$DRZoomWholePage to sText
+                Case Break
+            Case Else
+                Move (String (iZoomPercentage) + '%') to sText
+                Case Break
+        Case End
+
+        Send ComAddItem of hoCombo sText iIndex
+        Set ComItemData of hoCombo iIndex to iZoomPercentage
+        Get Text_Extent sText to iTextSize
+        Move (Low (iTextSize)) to iTextSize
+        
+        Move (iMaxTextWidth max iTextSize) to iMaxTextWidth
+    End_Procedure
+    
+    Procedure FillComboList Handle hoCombo
+        String sCaption
+        Integer iMaxTextWidth iTextSize iLabelWidth iThumbWidth
+        
+        Send ComClear of hoCombo
+        Send AddComboItem hoCombo 500 1 (&iMaxTextWidth)
+        Send AddComboItem hoCombo 400 2 (&iMaxTextWidth)
+        Send AddComboItem hoCombo 300 3 (&iMaxTextWidth)
+        Send AddComboItem hoCombo 200 4 (&iMaxTextWidth)
+        Send AddComboItem hoCombo 100 5 (&iMaxTextWidth)
+        Send AddComboItem hoCombo 75 6 (&iMaxTextWidth)
+        Send AddComboItem hoCombo 50 7 (&iMaxTextWidth)
+        Send AddComboItem hoCombo 25 8 (&iMaxTextWidth)
+        Send AddComboItem hoCombo -1 9 (&iMaxTextWidth)
+        Send AddComboItem hoCombo -2 10 (&iMaxTextWidth)
+
+        Get psCaption to sCaption
+        Get Text_Extent sCaption to iTextSize
+        Move (Low (iTextSize)) to iLabelWidth
+        Move (iMaxTextWidth + iLabelWidth) to iMaxTextWidth
+        
+        Move (GetSystemMetrics (SM_CXVSCROLL)) to iThumbWidth
+        Move (iMaxTextWidth + iThumbWidth) to iMaxTextWidth
+
+        Set ComDropDownWidth Of hoCombo To iMaxTextWidth
+        Set ComListIndex of hoCombo to 5
+        Set ComWidth of hoCombo to iMaxTextWidth
+    End_Procedure
+
+    Function ToInteger String sValue Returns Integer
+        Integer iLength iPos
+        String sChar sOutput
+        
+        Move (Length (sValue)) to iLength
+        For iPos from 1 to iLength
+            Move (Mid (sValue, 1, iPos)) to sChar
+            If ("0123456789" contains sChar) Begin
+                Move (sOutput + sChar) to sOutput
+            End
+        Loop
+        
+        Function_Return sOutput
+    End_Function
+
+    Procedure OnExecute Variant vCommandBarControl
+        Integer iIndex iZoomFactor
+        Handle hoCombo hoReport
+        String sValue
+
+        Get CreateProxyControl vCommandBarControl to hoCombo
+        Get ComListIndex of hoCombo to iIndex
+        If (iIndex > 0) Begin
+            Get ComItemData of hoCombo iIndex to iZoomFactor
+        End
+        Else Begin
+            Get ComText of hoCombo to sValue
+            Get ToInteger sValue to iZoomFactor
+        End
+        If (iZoomFactor = -1 or iZoomFactor = -2 or (iZoomFactor >= 25 and iZoomFactor <= 500)) Begin
+            Get ReportObject to hoReport
+            Set piPreviewZoom of hoReport to iZoomFactor
+        End
+
+        Send Destroy of hoCombo
+    End_Procedure
+
+    Procedure Set psText String sValue
+        Handle hoEdit
+        Boolean bCreated
+
+        Get IsComObjectCreated to bCreated
+        If (bCreated) Begin
+            Get CreateFirstProxyControl to hoEdit
+            If (hoEdit) Begin
+                Set ComText of hoEdit to sValue
+                Send Destroy of hoEdit
+            End
+        End
+    End_Procedure
+End_Class

@@ -1,0 +1,362 @@
+Use Windows.pkg
+Use DFRptVw.pkg
+Use File_Dlg.Pkg
+Use Colr_dlg.pkg
+
+Use cDRReport.pkg
+Use cDRPreview.pkg
+Use DRStatuspanel.dg
+
+// Use the data-dictionary to include the selectionlist and open the customer table
+Use cCustomerDataDictionary.dd
+
+// This example can print labels. Labels are different kind of report than standard reports as there might be more
+// addresses on one row (more labels across). Label reports also have no page header/footer, report header/footer, 
+// only a details section.
+
+// The report view allows users to 
+// - select on customer state or customer status
+// - suppress or use a box around the label
+// - pick a gradient start color for the label
+// - change the sort order
+
+Deferred_View Activate_oCustomerLabelsReportView for ;
+Object oCustomerLabelsReportView is a ReportView
+    Set Label to "Customer Labels"
+    Set Icon to "DR.ico"
+
+    Object oReport is a cDRReport
+        Set pbShowStatusPanel to True
+        Set phoStatusPanel to oDRStatusPanel
+        Set psReportName to "Customer Labels.dr"
+
+        Procedure OnCreate                          
+            Forward Send OnCreate
+            
+            Set piReportLanguage '' to LANG_NEUTRAL
+        End_Procedure
+        
+        Procedure OnInitializeReport
+            Integer eOutputDeviceMode
+
+            Forward Send OnInitializeReport
+
+            // Convert from the ReportView Output_Device_Mode to peOutputDestination
+            Get Output_Device_Mode to eOutputDeviceMode
+            Set peOutputDestination to eOutputDeviceMode
+
+            Send SetFunctions
+            Send SetFilters
+            Send SetSortFields
+            Send SetParameters
+        End_Procedure
+
+        Procedure SetFunctions
+            String sColor sReportId
+
+            Get Value of oFillColorForm to sColor
+            Get psReportId to sReportId
+
+            // Use a function instead of a parameter to make use of the RGB function inside DataFlex Reports and passing
+            // the values in the form instead of calculate them to a RGB color
+            Set psFunction sReportId "BoxGradientColor" to ("Return rgb(" + sColor + ")")
+        End_Procedure
+
+        // In this routine we find the code that sets the parameter values. The values
+        // for the parameters can be retrieved from an input control or from own coding.
+        Procedure SetParameters
+            String sReportId
+            Integer iParameter
+            Boolean bSuppresssBox
+
+            Get Checked_State of oSuppresssBoxParameterCheckbox to bSuppresssBox
+            Get psReportId to sReportId
+            Get ParameterIdByName sReportId "SuppresssBox" to iParameter
+            Set psParameterValue sReportId iParameter to bSuppresssBox
+        End_Procedure
+
+        Procedure SetFilters
+            String sReportId sCustomerState sCustomerStatus
+
+            Get psReportId to sReportId
+
+            Get Value of oCustomerState to sCustomerState
+            If (Length (sCustomerState) > 0) Begin
+                Send AddFilter sReportId "{Customer.State}" C_drEqual sCustomerState
+            End
+
+            Get Value of oCustomerStatus to sCustomerStatus
+            If (Length (sCustomerStatus) > 0) Begin
+                Send AddFilter sReportId "{Customer.Status}" C_drEqual sCustomerStatus
+            End
+        End_Procedure
+
+        Procedure SetSortFields
+            String sReportId sSortField
+            Integer iSortDirection
+
+            Get psReportId to sReportId
+
+            Send RemoveAllRecordSortFields sReportId
+            Get SortField of oSortOrderGroup to sSortField
+            Get SortDirection of oSortOrderGroup to iSortDirection
+            Send AddRecordSortField sReportId sSortField iSortDirection
+        End_Procedure
+    End_Object
+
+    Object oSelectionsGroup is a Group
+        Set Size to 50 135
+        Set Location to 5 5
+        Set Label to "Selections"
+        Set peAnchors to anTopLeftRight
+
+        Object oCustomerState is a ComboForm
+            Set Size to 12 89
+            Set Location to 17 30
+            Set piMaxSize to 14
+            Set piMinSize to 4
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Col_Offset to 2
+            Set Label to "State"
+            Set Status_Help to "Two letter state ID."
+            Set psToolTip to "Select State"
+
+            // This procedure is called for each value in the validation table, we simply add the supplied
+            // value to the combo list.
+            Procedure AddItem Integer iItem String sData String sDesc Integer iFile Integer iRec
+                Send Combo_Add_Item sData
+            End_Procedure
+
+            // This procedure is called when the combo list is to be filled. We use Request_Fill_From_List
+            // to instruct the validation table to send AddItem for each value in the validation table.
+            Procedure Combo_Fill_List
+                Send Request_Fill_From_List of Customer_State_VT Self (Refproc (AddItem))
+            End_Procedure
+        End_Object
+
+        Object oCustomerStatus is a ComboForm
+            Set Size to 12 34
+            Set Location to 31 30
+            Set piMaxSize to 7
+            Set piMinSize to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Col_Offset to 2
+            Set Label to "Active"
+            Set Status_Help to "Active Inactive Status of customer"
+            Set psToolTip to "Select Customer Active Status"
+            Set Allow_Blank_State to True
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item ""
+                Send Combo_Add_Item "Y"
+                Send Combo_Add_Item "N"
+            End_Procedure
+
+            Set Entry_State to False
+            Set Combo_Sort_State to True
+        End_Object
+    End_Object
+
+    Object oOptionsGroup is a Group
+        Set Size to 41 135
+        Set Location to 57 5
+        Set Label to "Options"
+        Set peAnchors to anTopLeftRight
+
+        Object oSuppresssBoxParameterCheckbox is a Checkbox
+            Set Size to 13 76
+            Set Location to 11 30
+            Set Label to "Suppresss Box"
+            Set psToolTip to "Suppress the Box Around the Label"
+            Set Status_Help to "Suppress the Box Around the Label"
+
+            Procedure OnChange
+                Boolean bSelected
+
+                Forward Send OnChange
+
+                Get Select_State to bSelected
+                Set Enabled_State of oFillColorForm to (not (bSelected))
+            End_Procedure
+        End_Object
+
+        Object oFillColorForm is a Form
+            Set Size to 12 100
+            Set Location to 23 30
+            Set Label_Col_Offset to 2
+            Set Label to "Color"
+            Set Label_Justification_Mode to JMode_Right
+            Set psToolTip to "Select a Gradient Color For the Label Background"
+            Set Prompt_Button_Mode to PB_PromptOn
+            Set Entry_State to False
+
+            Procedure Activating
+                Forward Send Activating
+
+                Set Value to "230,242,255"
+                Set Color to (RGB (230, 242, 255))
+            End_Procedure
+
+            Procedure Prompt
+                Integer rgbColor
+
+                Get SelectColor of oColorDialog to rgbColor
+                Set Color to rgbColor
+                Set Value to (SFormat ("%1,%2,%3", R_From_RGB (rgbColor), G_From_RGB (rgbColor), B_From_RGB (rgbColor)))
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oSortOrderGroup is a Group
+        Set Location to 100 5
+        Set Size to 37 135
+        Set Label to "Order By"
+        Set peAnchors to anTopLeftRight
+
+        Function SortField Returns String
+            String sFieldName
+            String[] sSortColumns
+            Integer iItem
+
+            Get Value Of oSortOnCombo To sFieldName
+            Get Combo_Item_Matching of oSortOnCombo sFieldName to iItem
+            Get psSortColumns of oSortOnCombo To sSortColumns
+
+            Function_Return sSortColumns[iItem]
+        End_Function
+
+        Function SortDirection Returns Integer
+            Boolean bChecked
+
+            Get Checked_State Of oSortDescending to bChecked
+            If (bChecked) Begin
+                Function_Return C_DRDescending
+            End
+            Else Begin
+                Function_Return C_DRAscending
+            End
+        End_Function
+
+        Object oSortOnCombo is a ComboForm
+            Set Location to 11 5
+            Set Size to 12 126
+            Set Combo_Sort_State to False
+            Set Entry_State 0 to False
+
+            Property String[] psSortColumns
+
+            Procedure Combo_Fill_List
+                String[] sSortColumns
+
+                Send Combo_Add_Item "Name"
+                Move "{Customer.Name}" to sSortColumns[0]
+
+                Send Combo_Add_Item "Zip"
+                Move "{Customer.Zip}" to sSortColumns[1]
+
+                Send Combo_Add_Item "State"
+                Move "{Customer.State}" to sSortColumns[2]
+
+                Send Combo_Add_Item "City"
+                Move "{Customer.City}" to sSortColumns[3]
+
+                Set psSortColumns to sSortColumns
+            End_Procedure
+        End_Object
+
+        Object oSortDescending is a Checkbox
+            Set Location to 25 5
+            Set Label to "Descending"
+        End_Object
+    End_Object
+
+    Object oDestinationGroup Is A RadioGroup
+        Set Label to "Output destination"
+        Set Location to 139 5
+        Set Size to 46 135
+        Set peAnchors to anTopLeftRight
+
+        Object oScreenRadio Is A Radio
+            Set Label to "Preview"
+            Set Size to 10 60
+            Set Location to 10 6
+            Set Status_Help to "Print the report to screen"
+        End_Object
+
+        Object oPrinterRadio Is A Radio
+            Set Label to "Printer"
+            Set Size to 10 60
+            Set Location to 22 6
+            Set Status_Help to "Prints the report to printer"
+        End_Object
+
+        Object oExportRadio Is A Radio
+            Set Label to "Export"
+            Set Size to 10 60
+            Set Location to 34 6
+            Set Status_Help to "Outputs the report to disk file (PDF, CSV, Image, HTML, Excel, RTF)"
+        End_Object
+
+        Procedure Notify_Select_State Integer iNewItem Integer iOldItem
+            Forward Send Notify_Select_State iNewItem iOldItem
+
+            Case Begin
+                Case (iNewItem = 0)
+                    Set Output_Device_Mode to PRINT_TO_WINDOW
+                    Case Break
+                Case (iNewItem = 1)
+                    Set Output_Device_Mode to PRINT_TO_PRINTER
+                    Case Break
+                Case (iNewItem = 2)
+                    Set Output_Device_Mode to PRINT_TO_FILE
+                    Case Break
+            Case End
+        End_Procedure
+    End_Object
+
+    Object oPrintButton Is A Button
+        Set Label to "&Print"
+        Set Status_Help to "Print the report"
+        Set Size to 14 50
+        Set Location to 187 29
+        Set Default_State to True
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Send RunReport of oReport
+        End_Procedure
+    End_Object
+
+    Object oCancelButton Is A Button
+        Set Label to "&Cancel"
+        Set Size to 14 50
+        Set Location to 187 90
+        Set Status_Help to "Cancel this Panel"
+        Set peAnchors to anBottomRight
+
+        // This procedure closes the report view.
+        Procedure OnClick
+            Send Request_Cancel
+        End_Procedure
+    End_Object
+
+    On_Key Key_Alt+Key_C Send KeyAction of oCancelButton
+    On_Key Key_Alt+Key_P Send KeyAction of oPrintButton
+
+    Set Location to 6 6
+    Set Size to 205 144
+
+    Object oColorDialog is a ColorDialog
+        Function SelectColor Returns Integer
+            Integer iRgbColor
+            Boolean bColorSelected
+
+            Get Show_Dialog to bColorSelected
+            If (bColorSelected) Begin
+                Get SelectedColor to iRgbColor
+            End
+
+            Function_Return iRgbColor
+        End_Function
+    End_Object
+Cd_End_Object

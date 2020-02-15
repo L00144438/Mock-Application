@@ -1,0 +1,16 @@
+Use Windows.Pkg
+
+{ ClassLibrary = Windows }
+Class cDRExportOptionsGroup is a Group
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        Set Visible_State to False
+        Set Enabled_State to False
+    End_Procedure
+    
+    Procedure ShowGroup Boolean bShow
+        Set Visible_State to bShow
+        Set Enabled_State to bShow        
+    End_Procedure
+End_Class

@@ -1,0 +1,26 @@
+Use cDRMenuItem.pkg
+Use DRLanguage.Inc
+
+{ ClassLibrary = Windows }
+Class cDRPrintMenuItem is a cDRMenuItem 
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        Set psCaption to C_$DRPrintReport
+        Set psToolTip to C_$DRPrintTheReportToAPrinter
+        Set psDescription to C_$DRPrintTheCurrentReportToAPrinter
+        Set psImage to "DRPrint.ico"
+    End_Procedure
+                   
+    Procedure OnExecute Variant vCommandBarControl
+        Handle hoReport
+        
+        Get ReportObject to hoReport
+        If (hoReport > 0) Begin
+            Send PrintReport of hoReport 0
+        End
+        Else Begin
+            Error DFERR_DATAFLEX_REPORTS C_$DRNoReportIdSpecified
+        End
+    End_Procedure
+End_Class

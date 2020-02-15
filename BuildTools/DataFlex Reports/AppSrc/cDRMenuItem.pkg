@@ -1,0 +1,42 @@
+Use cCJCommandBarSystem.pkg
+
+{ ClassType = Abstract ClassLibrary = Windows }
+Class cDRMenuItem is a cCJMenuItem
+    Procedure Construct_Object
+        Forward Send Construct_Object
+
+        Property Handle phoReport -1
+    End_Procedure
+    
+    Function ReportObject Returns Handle
+        Handle hoReport hoParent
+        
+        Get phoReport to hoReport
+        If (hoReport = -1) Begin
+            Get Parent to hoParent
+            While (hoReport = -1 and hoParent > Desktop)
+                Get phoReport of hoParent to hoReport
+                Get Parent of hoParent to hoParent
+            Loop
+        End
+        
+        Function_Return hoReport
+    End_Function
+
+    { MethodType = Event }
+    Function IsEnabled Returns Boolean
+        Handle hoReport
+        String sReportId
+
+        Get ReportObject to hoReport
+        If (hoReport > 0) Begin
+            Get psReportId of hoReport to sReportId
+            Function_Return (sReportId <> "")
+        End
+        Else Begin
+            Error DFERR_DATAFLEX_REPORTS C_$DRNoReportObject
+        End
+
+        Function_Return False
+    End_Function
+End_Class

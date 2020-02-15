@@ -1,0 +1,474 @@
+// GlobalAlloc Flags constants:
+Define GMEM_FIXED          for |CI$0000
+Define GMEM_MOVEABLE       for |CI$0002
+Define GMEM_NOCOMPACT      for |CI$0010
+Define GMEM_NODISCARD      for |CI$0020
+Define GMEM_ZEROINIT       for |CI$0040
+Define GMEM_MODIFY         for |CI$0080
+Define GMEM_DISCARDABLE    for |CI$0100
+Define GMEM_NOT_BANKED     for |CI$1000
+Define GMEM_SHARE          for |CI$2000
+Define GMEM_DDESHARE       for |CI$2000
+Define GMEM_NOTIFY         for |CI$4000
+Define GMEM_LOWER          for GMEM_NOT_BANKED
+
+// Flags for PrintDlg and PrintDlgEx
+Define PD_ALLPAGES                              for |CI$00000000 // The default flag that indicates that the All radio button is initially selected. This flag is used as a placeholder to indicate that the PD_PAGENUMS, PD_SELECTION, and PD_CURRENTPAGE flags are not specified.
+Define PD_SELECTION                             for |CI$00000001 // If this flag is set, the Selection radio button is selected. If none of the PD_PAGENUMS, PD_SELECTION, or PD_CURRENTPAGE flags is set, the All radio button is selected.
+Define PD_PAGENUMS                              for |CI$00000002 // If this flag is set, the Pages radio button is selected. If none of the PD_PAGENUMS, PD_SELECTION, or PD_CURRENTPAGE flags is set, the All radio button is selected. If this flag is set when the PrintDlgEx function returns, the lpPageRanges member indicates the page ranges specified by the user.
+Define PD_NOSELECTION                           for |CI$00000004 // Disables the Selection radio button.
+Define PD_NOPAGENUMS                            for |CI$00000008 // Disables the Pages radio button and the associated edit controls. Also, it causes the Collate check box to appear in the dialog.
+Define PD_COLLATE                               for |CI$00000010 // If this flag is set, the Collate check box is selected. If this flag is Set when the PrintDlgEx Function Returns, the application must simulate collation of multiple copies. for more information, see the description of the PD_USEDEVMODECOPIESANDCOLLATE flag. See PD_NOPAGENUMS.
+Define PD_PRINTTOFILE                           for |CI$00000020 // If this flag is set, the Print to File check box is selected. If this flag is set when PrintDlgEx returns, the offset indicated by the wOutputOffset member of the DEVNAMES structure contains the string "FILE:". When you call the StartDoc function to start the printing operation, specify this "FILE:" string in the lpszOutput member of the DOCINFO structure. Specifying this string causes the print subsystem to query the user for the name of the output file.
+Define PD_PRINTSETUP                            for |CI$00000040
+Define PD_NOWARNING                             for |CI$00000080 // Prevents the warning message from being displayed when an error occurs.
+Define PD_RETURNDC                              for |CI$00000100 // Causes PrintDlgEx to return a device context matching the selections the user made in the property sheet. The device context is returned in hDC.
+Define PD_RETURNIC                              for |CI$00000200 // Similar to the PD_RETURNDC flag, except this flag returns an information context rather than a device context. If neither PD_RETURNDC nor PD_RETURNIC is specified, hDC is undefined on output.
+Define PD_RETURNDEFAULT                         for |CI$00000400 // If this flag is set, the PrintDlgEx function does not display the property sheet. Instead, it sets the hDevNames and hDevMode members to handles to DEVNAMES and DEVMODE structures that are initialized for the system default printer. Both hDevNames and hDevMode must be NULL, or PrintDlgEx returns an error.
+Define PD_SHOWHELP                              for |CI$00000800
+Define PD_ENABLEPRINTHOOK                       for |CI$00001000
+Define PD_ENABLESETUPHOOK                       for |CI$00002000
+Define PD_ENABLEPRINTTEMPLATE                   for |CI$00004000 // Indicates that the hInstance and lpPrintTemplateName members specify a replacement for the default dialog box template in the lower portion of the General page. The default template contains controls similar to those of the Print dialog box. The system uses the specified template to create a window that is a child of the General page.
+Define PD_ENABLESETUPTEMPLATE                   for |CI$00008000
+Define PD_ENABLEPRINTTEMPLATEHANDLE             for |CI$00010000 // Indicates that the hInstance member identifies a data block that contains a preloaded dialog box template. This template replaces the default dialog box template in the lower portion of the General page. The system uses the specified template to create a window that is a child of the General page. The system ignores the lpPrintTemplateName member if this flag is specified.
+Define PD_ENABLESETUPTEMPLATEHANDLE             for |CI$00020000
+Define PD_USEDEVMODECOPIES                      for |CI$00040000 // Same as PD_USEDEVMODECOPIESANDCOLLATE.
+Define PD_USEDEVMODECOPIESANDCOLLATE            for |CI$00040000 // This flag indicates whether your application supports multiple copies and collation. Set this flag on input to indicate that your application does not support multiple copies and collation. In this case, the nCopies member of the PRINTDLGEX structure always returns 1, and PD_COLLATE is never set in the Flags member. If this flag is not Set, the application is responsible for printing and collating multiple copies. In this Case, the nCopies member of the PRINTDLGEX structure indicates the Number of copies the user wants to Print, and the PD_COLLATE flag in the Flags member indicates whether the user wants collation. Regardless of whether this flag is Set, an application can determine from nCopies and PD_COLLATE how many copies to render and whether to Print them collated. If this flag is Set and the printer driver does not support multiple copies, the Copies edit control is disabled. Similarly, If this flag is Set and the printer driver does not support collation, the Collate check box is disabled. The dmCopies and dmCollate members of the DEVMODE structure contain the copies and collate information used by the printer driver. If this flag is Set and the printer driver supports multiple copies, the	dmCopies member indicates the Number of copies requested by the user. If this flag is Set and the printer driver supports collation, the dmCollate member of the DEVMODE structure indicates whether the user wants collation. If this flag is not Set, the dmCopies member always Returns 1, and the dmCollate member is always zero. In Windows versions prior to Windows Vista, If this flag is not Set by the calling application and the dmCopies member of the DEVMODE structure is greater than 1, Use that value for the number of copies; otherwise, use the value of the nCopies member of the PRINTDLGEX structure.
+Define PD_DISABLEPRINTTOFILE                    for |CI$00080000 // Disables the Print to File check box.
+Define PD_HIDEPRINTTOFILE                       for |CI$00100000 // Hides the Print to File check box.
+Define PD_NONETWORKBUTTON                       for |CI$00200000
+Define PD_CURRENTPAGE                           for |CI$00400000 // If this flag is set, the Current Page radio button is selected. If none of the PD_PAGENUMS, PD_SELECTION, or PD_CURRENTPAGE flags is set, the All radio button is selected.
+Define PD_NOCURRENTPAGE                         for |CI$00800000 // Disables the Current Page radio button.
+Define PD_EXCLUSIONFLAGS                        for |CI$01000000 // Indicates that the ExclusionFlags member identifies items to be excluded from the printer driver property pages. If this flag is not set, items will be excluded by default from the printer driver property pages. The exclusions prevent the duplication of items among the General page, any application-specified pages, and the printer driver pages.
+Define PD_USELARGETEMPLATE                      for |CI$10000000 // Forces the property sheet to use a large template for the General page. The larger template provides more space for applications that specify a custom template for the lower portion of the General page.
+
+// Start page
+Define START_PAGE_GENERAL                       for 4294967295 // = 0xffffffff
+
+// Result codes
+Define PD_RESULT_CANCEL                         for 0
+Define PD_RESULT_PRINT                          for 1
+Define PD_RESULT_APPLY                          for 2
+
+// current version of specification
+Define DM_SPECVERSION                           for |CI$0401    
+
+// field selection bits
+Define DM_ORIENTATION                           for |CI$00000001
+Define DM_PAPERSIZE                             for |CI$00000002
+Define DM_PAPERLENGTH                           for |CI$00000004
+Define DM_PAPERWIDTH                            for |CI$00000008
+Define DM_SCALE                                 for |CI$00000010
+Define DM_POSITION                              for |CI$00000020
+Define DM_NUP                                   for |CI$00000040
+Define DM_DISPLAYORIENTATION                    for |CI$00000080
+Define DM_COPIES                                for |CI$00000100
+Define DM_DEFAULTSOURCE                         for |CI$00000200
+Define DM_PRINTQUALITY                          for |CI$00000400
+Define DM_COLOR                                 for |CI$00000800
+Define DM_DUPLEX                                for |CI$00001000
+Define DM_YRESOLUTION                           for |CI$00002000
+Define DM_TTOPTION                              for |CI$00004000
+Define DM_COLLATE                               for |CI$00008000
+Define DM_FORMNAME                              for |CI$00010000
+Define DM_LOGPIXELS                             for |CI$00020000
+Define DM_BITSPERPEL                            for |CI$00040000
+Define DM_PELSWIDTH                             for |CI$00080000
+Define DM_PELSHEIGHT                            for |CI$00100000
+Define DM_DISPLAYFLAGS                          for |CI$00200000
+Define DM_DISPLAYFREQUENCY                      for |CI$00400000
+Define DM_ICMMETHOD                             for |CI$00800000
+Define DM_ICMINTENT                             for |CI$01000000
+Define DM_MEDIATYPE                             for |CI$02000000
+Define DM_DITHERTYPE                            for |CI$04000000
+Define DM_PANNINGWIDTH                          for |CI$08000000
+Define DM_PANNINGHEIGHT                         for |CI$10000000
+Define DM_DISPLAYFIXEDOUTPUT                    for |CI$20000000
+
+//  Exclusion flags for PrintDlgEx.
+Define PD_EXCL_COPIESANDCOLLATE                 for (DM_COPIES ior DM_COLLATE)
+
+// orientation selections
+Define DMORIENT_PORTRAIT                        for 1
+Define DMORIENT_LANDSCAPE                       for 2
+
+// paper selections
+Define DMPAPER_LETTER                           for 1   // Letter 8 1/2 x 11 in
+Define DMPAPER_LETTERSMALL                      for 2   // Letter Small 8 1/2 x 11 in
+Define DMPAPER_TABLOID                          for 3   // Tabloid 11 x 17 in
+Define DMPAPER_LEDGER                           for 4   // Ledger 17 x 11 in
+Define DMPAPER_LEGAL                            for 5   // Legal 8 1/2 x 14 in
+Define DMPAPER_STATEMENT                        for 6   // Statement 5 1/2 x 8 1/2 in
+Define DMPAPER_EXECUTIVE                        for 7   // Executive 7 1/4 x 10 1/2 in
+Define DMPAPER_A3                               for 8   // A3 297 x 420 mm
+Define DMPAPER_A4                               for 9   // A4 210 x 297 mm
+Define DMPAPER_A4SMALL                          for 10  // A4 Small 210 x 297 mm
+Define DMPAPER_A5                               for 11  // A5 148 x 210 mm
+Define DMPAPER_B4                               for 12  // B4 (JIS) 250 x 354
+Define DMPAPER_B5                               for 13  // B5 (JIS) 182 x 257 mm
+Define DMPAPER_FOLIO                            for 14  // Folio 8 1/2 x 13 in
+Define DMPAPER_QUARTO                           for 15  // Quarto 215 x 275 mm
+Define DMPAPER_10X14                            for 16  // 10x14 in
+Define DMPAPER_11X17                            for 17  // 11x17 in
+Define DMPAPER_NOTE                             for 18  // Note 8 1/2 x 11 in
+Define DMPAPER_ENV_9                            for 19  // Envelope #9 3 7/8 x 8 7/8
+Define DMPAPER_ENV_10                           for 20  // Envelope #10 4 1/8 x 9 1/2
+Define DMPAPER_ENV_11                           for 21  // Envelope #11 4 1/2 x 10 3/8
+Define DMPAPER_ENV_12                           for 22  // Envelope #12 4 \276 x 11
+Define DMPAPER_ENV_14                           for 23  // Envelope #14 5 x 11 1/2
+Define DMPAPER_CSHEET                           for 24  // C size sheet
+Define DMPAPER_DSHEET                           for 25  // D size sheet
+Define DMPAPER_ESHEET                           for 26  // E size sheet
+Define DMPAPER_ENV_DL                           for 27  // Envelope DL 110 x 220mm
+Define DMPAPER_ENV_C5                           for 28  // Envelope C5 162 x 229 mm
+Define DMPAPER_ENV_C3                           for 29  // Envelope C3  324 x 458 mm
+Define DMPAPER_ENV_C4                           for 30  // Envelope C4  229 x 324 mm
+Define DMPAPER_ENV_C6                           for 31  // Envelope C6  114 x 162 mm
+Define DMPAPER_ENV_C65                          for 32  // Envelope C65 114 x 229 mm
+Define DMPAPER_ENV_B4                           for 33  // Envelope B4  250 x 353 mm
+Define DMPAPER_ENV_B5                           for 34  // Envelope B5  176 x 250 mm
+Define DMPAPER_ENV_B6                           for 35  // Envelope B6  176 x 125 mm
+Define DMPAPER_ENV_ITALY                        for 36  // Envelope 110 x 230 mm
+Define DMPAPER_ENV_MONARCH                      for 37  // Envelope Monarch 3.875 x 7.5 in
+Define DMPAPER_ENV_PERSONAL                     for 38  // 6 3/4 Envelope 3 5/8 x 6 1/2 in
+Define DMPAPER_FANFOLD_US                       for 39  // US Std Fanfold 14 7/8 x 11 in
+Define DMPAPER_FANFOLD_STD_GERMAN               for 40  // German Std Fanfold 8 1/2 x 12 in
+Define DMPAPER_FANFOLD_LGL_GERMAN               for 41  // German Legal Fanfold 8 1/2 x 13 in
+Define DMPAPER_ISO_B4                           for 42  // B4 (ISO) 250 x 353 mm
+Define DMPAPER_JAPANESE_POSTCARD                for 43  // Japanese Postcard 100 x 148 mm
+Define DMPAPER_9X11                             for 44  // 9 x 11 in
+Define DMPAPER_10X11                            for 45  // 10 x 11 in
+Define DMPAPER_15X11                            for 46  // 15 x 11 in
+Define DMPAPER_ENV_INVITE                       for 47  // Envelope Invite 220 x 220 mm
+Define DMPAPER_RESERVED_48                      for 48  // RESERVED--DO not Use
+Define DMPAPER_RESERVED_49                      for 49  // RESERVED--DO not Use
+Define DMPAPER_LETTER_EXTRA                     for 50  // Letter Extra 9 \275 x 12 in
+Define DMPAPER_LEGAL_EXTRA                      for 51  // Legal Extra 9 \275 x 15 in
+Define DMPAPER_TABLOID_EXTRA                    for 52  // Tabloid Extra 11.69 x 18 in
+Define DMPAPER_A4_EXTRA                         for 53  // A4 Extra 9.27 x 12.69 in
+Define DMPAPER_LETTER_TRANSVERSE                for 54  // Letter Transverse 8 \275 x 11 in
+Define DMPAPER_A4_TRANSVERSE                    for 55  // A4 Transverse 210 x 297 mm
+Define DMPAPER_LETTER_EXTRA_TRANSVERSE          for 56  // Letter Extra Transverse 9\275 x 12 in
+Define DMPAPER_A_PLUS                           for 57  // SuperA/SuperA/A4 227 x 356 mm
+Define DMPAPER_B_PLUS                           for 58  // SuperB/SuperB/A3 305 x 487 mm
+Define DMPAPER_LETTER_PLUS                      for 59  // Letter Plus 8.5 x 12.69 in
+Define DMPAPER_A4_PLUS                          for 60  // A4 Plus 210 x 330 mm
+Define DMPAPER_A5_TRANSVERSE                    for 61  // A5 Transverse 148 x 210 mm
+Define DMPAPER_B5_TRANSVERSE                    for 62  // B5 (JIS) Transverse 182 x 257 mm
+Define DMPAPER_A3_EXTRA                         for 63  // A3 Extra 322 x 445 mm
+Define DMPAPER_A5_EXTRA                         for 64  // A5 Extra 174 x 235 mm
+Define DMPAPER_B5_EXTRA                         for 65  // B5 (ISO) Extra 201 x 276 mm
+Define DMPAPER_A2                               for 66  // A2 420 x 594 mm
+Define DMPAPER_A3_TRANSVERSE                    for 67  // A3 Transverse 297 x 420 mm
+Define DMPAPER_A3_EXTRA_TRANSVERSE              for 68  // A3 Extra Transverse 322 x 445 mm
+Define DMPAPER_DBL_JAPANESE_POSTCARD            for 69  // Japanese Double Postcard 200 x 148 mm
+Define DMPAPER_A6                               for 70  // A6 105 x 148 mm
+Define DMPAPER_JENV_KAKU2                       for 71  // Japanese Envelope Kaku #2
+Define DMPAPER_JENV_KAKU3                       for 72  // Japanese Envelope Kaku #3
+Define DMPAPER_JENV_CHOU3                       for 73  // Japanese Envelope Chou #3
+Define DMPAPER_JENV_CHOU4                       for 74  // Japanese Envelope Chou #4
+Define DMPAPER_LETTER_ROTATED                   for 75  // Letter Rotated 11 x 8 1/2 11 in
+Define DMPAPER_A3_ROTATED                       for 76  // A3 Rotated 420 x 297 mm
+Define DMPAPER_A4_ROTATED                       for 77  // A4 Rotated 297 x 210 mm
+Define DMPAPER_A5_ROTATED                       for 78  // A5 Rotated 210 x 148 mm
+Define DMPAPER_B4_JIS_ROTATED                   for 79  // B4 (JIS) Rotated 364 x 257 mm
+Define DMPAPER_B5_JIS_ROTATED                   for 80  // B5 (JIS) Rotated 257 x 182 mm
+Define DMPAPER_JAPANESE_POSTCARD_ROTATED        for 81  // Japanese Postcard Rotated 148 x 100 mm
+Define DMPAPER_DBL_JAPANESE_POSTCARD_ROTATED    for 82  // Double Japanese Postcard Rotated 148 x 200 mm
+Define DMPAPER_A6_ROTATED                       for 83  // A6 Rotated 148 x 105 mm
+Define DMPAPER_JENV_KAKU2_ROTATED               for 84  // Japanese Envelope Kaku #2 Rotated
+Define DMPAPER_JENV_KAKU3_ROTATED               for 85  // Japanese Envelope Kaku #3 Rotated
+Define DMPAPER_JENV_CHOU3_ROTATED               for 86  // Japanese Envelope Chou #3 Rotated
+Define DMPAPER_JENV_CHOU4_ROTATED               for 87  // Japanese Envelope Chou #4 Rotated
+Define DMPAPER_B6_JIS                           for 88  // B6 (JIS) 128 x 182 mm
+Define DMPAPER_B6_JIS_ROTATED                   for 89  // B6 (JIS) Rotated 182 x 128 mm
+Define DMPAPER_12X11                            for 90  // 12 x 11 in
+Define DMPAPER_JENV_YOU4                        for 91  // Japanese Envelope You #4
+Define DMPAPER_JENV_YOU4_ROTATED                for 92  // Japanese Envelope You #4 Rotated
+Define DMPAPER_P16K                             for 93  // PRC 16K 146 x 215 mm
+Define DMPAPER_P32K                             for 94  // PRC 32K 97 x 151 mm
+Define DMPAPER_P32KBIG                          for 95  // PRC 32K(Big) 97 x 151 mm
+Define DMPAPER_PENV_1                           for 96  // PRC Envelope #1 102 x 165 mm
+Define DMPAPER_PENV_2                           for 97  // PRC Envelope #2 102 x 176 mm
+Define DMPAPER_PENV_3                           for 98  // PRC Envelope #3 125 x 176 mm
+Define DMPAPER_PENV_4                           for 99  // PRC Envelope #4 110 x 208 mm
+Define DMPAPER_PENV_5                           for 100 // PRC Envelope #5 110 x 220 mm
+Define DMPAPER_PENV_6                           for 101 // PRC Envelope #6 120 x 230 mm
+Define DMPAPER_PENV_7                           for 102 // PRC Envelope #7 160 x 230 mm
+Define DMPAPER_PENV_8                           for 103 // PRC Envelope #8 120 x 309 mm
+Define DMPAPER_PENV_9                           for 104 // PRC Envelope #9 229 x 324 mm
+Define DMPAPER_PENV_10                          for 105 // PRC Envelope #10 324 x 458 mm
+Define DMPAPER_P16K_ROTATED                     for 106 // PRC 16K Rotated
+Define DMPAPER_P32K_ROTATED                     for 107 // PRC 32K Rotated
+Define DMPAPER_P32KBIG_ROTATED                  for 108 // PRC 32K(Big) Rotated
+Define DMPAPER_PENV_1_ROTATED                   for 109 // PRC Envelope #1 Rotated 165 x 102 mm
+Define DMPAPER_PENV_2_ROTATED                   for 110 // PRC Envelope #2 Rotated 176 x 102 mm
+Define DMPAPER_PENV_3_ROTATED                   for 111 // PRC Envelope #3 Rotated 176 x 125 mm
+Define DMPAPER_PENV_4_ROTATED                   for 112 // PRC Envelope #4 Rotated 208 x 110 mm
+Define DMPAPER_PENV_5_ROTATED                   for 113 // PRC Envelope #5 Rotated 220 x 110 mm
+Define DMPAPER_PENV_6_ROTATED                   for 114 // PRC Envelope #6 Rotated 230 x 120 mm
+Define DMPAPER_PENV_7_ROTATED                   for 115 // PRC Envelope #7 Rotated 230 x 160 mm
+Define DMPAPER_PENV_8_ROTATED                   for 116 // PRC Envelope #8 Rotated 309 x 120 mm
+Define DMPAPER_PENV_9_ROTATED                   for 117 // PRC Envelope #9 Rotated 324 x 229 mm
+Define DMPAPER_PENV_10_ROTATED                  for 118 // PRC Envelope #10 Rotated 458 x 324 mm
+Define DMPAPER_FIRST                            for DMPAPER_LETTER
+Define DMPAPER_LAST                             for DMPAPER_PENV_10_ROTATED
+Define DMPAPER_USER                             for 256
+
+// bin selections
+Define DMBIN_UPPER         for 1
+Define DMBIN_ONLYONE       for 1
+Define DMBIN_LOWER         for 2
+Define DMBIN_MIDDLE        for 3
+Define DMBIN_MANUAL        for 4
+Define DMBIN_ENVELOPE      for 5
+Define DMBIN_ENVMANUAL     for 6
+Define DMBIN_AUTO          for 7
+Define DMBIN_TRACTOR       for 8
+Define DMBIN_SMALLFMT      for 9
+Define DMBIN_LARGEFMT      for 10
+Define DMBIN_LARGECAPACITY for 11
+Define DMBIN_CASSETTE      for 14
+Define DMBIN_FORMSOURCE    for 15
+Define DMBIN_FIRST         for DMBIN_UPPER
+Define DMBIN_LAST          for DMBIN_FORMSOURCE
+Define DMBIN_USER          for 256 // device specific bins start here
+
+// print qualities
+Define DMRES_DRAFT  for (-1)
+Define DMRES_LOW    for (-2)
+Define DMRES_MEDIUM for (-3)
+Define DMRES_HIGH   for (-4)
+
+// color enable/disable for color printers
+Define DMCOLOR_MONOCHROME for 1
+Define DMCOLOR_COLOR      for 2
+
+// duplex enable
+Define DMDUP_SIMPLEX    for 1
+Define DMDUP_VERTICAL   for 2
+Define DMDUP_HORIZONTAL for 3
+
+// TrueType options
+Define DMTT_BITMAP           for 1   // Print TT fonts as graphics
+Define DMTT_DOWNLOAD         for 2   // download TT fonts as soft fonts
+Define DMTT_SUBDEV           for 3   // substitute device fonts for TT fonts
+Define DMTT_DOWNLOAD_OUTLINE for 4   // download TT fonts as outline soft fonts
+
+// Collation selections
+Define DMCOLLATE_FALSE for 0
+Define DMCOLLATE_TRUE  for 1
+
+// DEVMODE dmDisplayOrientation specifiations
+Define DMDO_DEFAULT for 0
+Define DMDO_90      for 1
+Define DMDO_180     for 2
+Define DMDO_270     for 3
+
+// DEVMODE dmDisplayFixedOutput specifiations
+Define DMDFO_DEFAULT for 0
+Define DMDFO_STRETCH for 1
+Define DMDFO_CENTER  for 2
+
+// DEVMODE dmDisplayFlags flags
+Define DM_INTERLACED           for |CI$00000002
+Define DMDISPLAYFLAGS_TEXTMODE for |CI$00000004
+
+// dmNup, multiple logical page per physical page options
+Define DMNUP_SYSTEM for 1
+Define DMNUP_ONEUP  for 2
+
+// ICM methods
+Define DMICMMETHOD_NONE   for 1   // ICM disabled
+Define DMICMMETHOD_SYSTEM for 2   // ICM handled by system
+Define DMICMMETHOD_DRIVER for 3   // ICM handled by driver
+Define DMICMMETHOD_DEVICE for 4   // ICM handled by device
+Define DMICMMETHOD_USER   for 256 // Device-specific methods start here
+
+// ICM Intents
+Define DMICM_SATURATE         for 1   // Maximize color saturation
+Define DMICM_CONTRAST         for 2   // Maximize color contrast
+Define DMICM_COLORIMETRIC     for 3   // Use specific color metric
+Define DMICM_ABS_COLORIMETRIC for 4   // Use specific color metric
+Define DMICM_USER             for 256 // Device-specific intents start here
+
+// Media types
+Define DMMEDIA_STANDARD     for 1   // Standard paper
+Define DMMEDIA_TRANSPARENCY for 2   // Transparency
+Define DMMEDIA_GLOSSY       for 3   // Glossy paper
+Define DMMEDIA_USER         for 256 // Device-specific media start here
+
+// Dither types
+Define DMDITHER_NONE           for 1   // No dithering
+Define DMDITHER_COARSE         for 2   // Dither with a coarse brush
+Define DMDITHER_FINE           for 3   // Dither with a fine brush
+Define DMDITHER_LINEART        for 4   // LineArt dithering
+Define DMDITHER_ERRORDIFFUSION for 5   // LineArt dithering
+Define DMDITHER_RESERVED6      for 6   // LineArt dithering
+Define DMDITHER_RESERVED7      for 7   // LineArt dithering
+Define DMDITHER_RESERVED8      for 8   // LineArt dithering
+Define DMDITHER_RESERVED9      for 9   // LineArt dithering
+Define DMDITHER_GRAYSCALE      for 10  // Device does grayscaling
+Define DMDITHER_USER           for 256 // Device-specific dithers start here
+
+Define CCHDEVICENAME for 32  // size of a device name String
+Define CCHFORMNAME   for 32  // size of a form name String
+
+Define GMEM_VALID_FLAGS    for |CI$7F72
+Define GMEM_INVALID_HANDLE for |CI$8000
+Define GMEM_DISCARDED      for |CI$4000
+Define GMEM_LOCKCOUNT      for |CI$00FF
+
+Define GHND       for (GMEM_MOVEABLE ior GMEM_ZEROINIT)
+Define GPTR       for (GMEM_FIXED ior GMEM_ZEROINIT)
+
+// Common HRESULT values
+Define S_OK	      for |CI$00000000 // Operation successful
+Define E_ABORT        for |CI$80004004 // Operation aborted
+Define E_ACCESSDENIED for |CI$80070005 // General access denied error
+Define E_FAIL         for |CI$80004005 // Unspecified failure
+Define E_HANDLE	      for |CI$80070006 // Handle that is not valid
+Define E_INVALIDARG   for |CI$80070057 // One or more arguments are not valid
+Define E_NOINTERFACE  for |CI$80004002 // No such interface supported
+Define E_NOTIMPL      for |CI$80004001 // not implemented
+Define E_OUTOFMEMORY  for |CI$8007000E // Failed to allocate necessary memory
+Define E_POINTER      for |CI$80004003 // Pointer that is not valid
+Define E_UNEXPECTED   for |CI$8000FFFF // Unexpected failure
+
+#IFNDEF get_GlobalAlloc
+External_Function GlobalAlloc "GlobalAlloc" kernel32.dll ;
+    Integer uFlags ;
+    Integer dwBytes ;
+    Returns Handle
+#ENDIF
+
+#IFNDEF get_GlobalDiscard
+External_Function GlobalDiscard "GlobalDiscard" kernel32.dll ;
+    Handle hMem ;
+    Returns Handle
+#ENDIF
+
+#IFNDEF get_GlobalFree
+External_Function GlobalFree "GlobalFree" kernel32.dll ;
+    Handle hMem ;
+    Returns Handle
+#ENDIF
+
+#IFNDEF get_GlobalHandle
+External_Function GlobalHandle "GlobalHandle" kernel32.dll ;
+    Pointer pMem ;
+    Returns Handle
+#ENDIF
+
+#IFNDEF get_GlobalLock
+External_Function GlobalLock "GlobalLock" kernel32.dll ;
+    Handle hMem ;
+    Returns Pointer
+#ENDIF
+
+#IFNDEF get_GlobalReAlloc
+External_Function GlobalReAlloc "GlobalReAlloc" kernel32.dll ;
+    Handle hMem ;
+    Integer dwBytes ;
+    Integer uFlags ;
+    Returns Handle
+#ENDIF
+
+#IFNDEF get_GlobalSize
+External_Function GlobalSize "GlobalSize" kernel32.dll ;
+    Handle hMem ;
+    Returns Integer
+#ENDIF
+
+#IFNDEF get_GlobalUnlock
+External_Function GlobalUnlock "GlobalUnlock" kernel32.dll ;
+    Handle hMem ;
+    Returns Boolean
+#ENDIF
+
+#IFNDEF get_PrintDlgEx
+External_Function PrintDlgEx "PrintDlgExA" comdlg32.dll ;
+    Pointer lppd ;
+    Returns Handle
+#ENDIF
+
+#IFNDEF _STRUCT_PRINTDLGEX
+Struct PRINTDLGEX
+    UInteger lStructSize            // size of structure in bytes
+    Handle  hwndOwner               // caller's window handle
+    Handle  hDevMode                // handle to DevMode
+    Handle  hDevNames               // handle to DevNames
+    Handle  hDC                     // printer DC/IC or NULL
+    UInteger Flags                  // PD_ flags
+    UInteger Flags2                 // reserved
+    UInteger ExclusionFlags         // items to exclude from driver pages
+    UInteger nPageRanges            // number of page ranges
+    UInteger nMaxPageRanges         // max number of page ranges
+    Pointer lpPageRanges            // array of page ranges
+    UInteger nMinPage               // min page number
+    UInteger nMaxPage               // max page number
+    UInteger nCopies                // number of copies
+    Handle  hInstance               // instance handle
+    Pointer lpPrintTemplateName     // template name for app specific area
+    Pointer lpCallback              // app callback interface
+    UInteger nPropertyPages         // number of app property pages in lphPropertyPages
+    Pointer lphPropertyPages        // array of app property page handles
+    UInteger nStartPage             // start page id
+    UInteger dwResultAction         // result action if S_OK is returned
+End_Struct // PRINTDLGEX
+#ENDIF
+
+#IFNDEF _STRUCT_DEVMODE
+Struct DEVMODE
+    UChar[CCHDEVICENAME] dmDeviceName
+    Short               dmSpecVersion
+    Short               dmDriverVersion
+    Short               dmSize
+    Short               dmDriverExtra
+    Integer             dmFields
+    Short               dmOrientation
+    Short               dmPaperSize
+    Short               dmPaperLength
+    Short               dmPaperWidth
+    Short               dmScale
+    Short               dmCopies
+    Short               dmDefaultSource
+    Short               dmPrintQuality
+    Short               dmColor
+    Short               dmDuplex
+    Short               dmYResolution
+    Short               dmTTOption
+    Short               dmCollate
+    UChar[CCHFORMNAME]  dmFormName
+    Short               dmLogPixels // Not in use for printers
+    UInteger            dmBitsPerPel // Not in use for printers
+    UInteger            dmPelsWidth // Not in use for printers
+    UInteger            dmPelsHeight // Not in use for printers
+    UInteger            dmNup
+    UInteger            dmDisplayFrequency // Not in use for printers
+    UInteger            dmICMMethod
+    UInteger            dmICMIntent
+    UInteger            dmMediaType
+    UInteger            dmDitherType
+    UInteger            dmReserved1 // Not used; must be zero
+    UInteger            dmReserved2 // Not used; must be zero
+    UInteger            dmPanningWidth // This member must be zero
+    UInteger            dmPanningHeight // This member must be zero
+End_Struct // DEVMODE
+#ENDIF
+
+#IFNDEF _STRUCT_DEVNAMES
+Struct DEVNAMES
+    Short   wDriverOffset
+    Short   wDeviceOffset
+    Short   wOutputOffset
+    Short   wDefault
+End_Struct // DEVNAMES
+#ENDIF
+
+#IFNDEF _STRUCT_PRINTPAGERANGE
+Struct PRINTPAGERANGE
+    Integer nFromPage
+    Integer nToPage
+End_Struct // PRINTPAGERANGE
+#ENDIF

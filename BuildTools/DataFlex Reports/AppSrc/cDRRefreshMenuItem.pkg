@@ -1,0 +1,28 @@
+Use cDRMenuItem.pkg
+Use DRLanguage.Inc
+
+{ ClassLibrary = Windows }
+Class cDRRefreshMenuItem is a cDRMenuItem
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        Set psCaption to C_$DRRefresh
+        Set psDescription to C_$DRRefreshTheReport
+        Set psToolTip to C_$DRRefreshTheCurrentReport
+        Set pbActiveUpdate to True
+        Set psImage to "DRRefresh.Ico"
+        Set pbControlBeginGroup to True
+    End_Procedure
+    
+    Procedure OnExecute Variant vCommandBarControl
+        Handle hoReport
+        
+        Get ReportObject to hoReport
+        If (hoReport > 0) Begin
+            Send RefreshReport of hoReport
+        End
+        Else Begin
+            Error DFERR_DATAFLEX_REPORTS C_$DRNoReportIdSpecified
+        End
+    End_Procedure
+End_Class

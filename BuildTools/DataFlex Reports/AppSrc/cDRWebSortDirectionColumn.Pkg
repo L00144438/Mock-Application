@@ -1,0 +1,26 @@
+Use cWebColumnCombo.pkg
+
+{ ClassLibrary = WebApp }
+Class cDRWebSortDirectionColumn is a cWebColumnCombo
+    Procedure Construct_Object
+        Forward Send Construct_Object
+
+        Set pbSortable to False
+        Set piWidth to 60
+        
+        Property String psAscendingText "Ascending"
+        Property String psDescendingText "Descending"
+
+        Delegate Set phoSortDirectionColumn to Self
+    End_Procedure
+    
+    Procedure OnFill
+        String sText
+        
+        Get psAscendingText to sText
+        Send AddComboItem C_DRAscending sText
+        
+        Get psDescendingText to sText
+        Send AddComboItem C_DRDescending sText
+    End_Procedure
+End_Class    

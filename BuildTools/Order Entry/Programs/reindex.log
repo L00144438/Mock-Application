@@ -1,0 +1,29 @@
+Verifying workspace location
+Opening workspace: C:\DataFlex 19.1 Examples\Order Entry\Programs\Config.ws
+Verifying filelist location
+Opening filelist: C:\DataFlex 19.1 Examples\Order Entry\Data\Filelist.cfg
+Start reindexing
+Opening OrderSystem (file number: 20)
+Reindexing OrderSystem
+Opening Vendor (file number: 21)
+Reindexing Vendor
+Opening Inventory (file number: 22)
+Reindexing Inventory
+Opening Customer (file number: 25)
+Reindexing Customer
+Opening SalesPerson (file number: 27)
+Reindexing SalesPerson
+Opening OrderHeader (file number: 30)
+Reindexing OrderHeader
+Opening OrderDetail (file number: 31)
+Reindexing OrderDetail
+Opening CodeType (file number: 253)
+Reindexing CodeType
+Opening CodeMast (file number: 254)
+Reindexing CodeMast
+Opening WebAppSession (file number: 263)
+Reindexing WebAppSession
+Opening WebAppUser (file number: 264)
+Reindexing WebAppUser
+Opening WebAppServerProps (file number: 265)
+Reindexing WebAppServerProps

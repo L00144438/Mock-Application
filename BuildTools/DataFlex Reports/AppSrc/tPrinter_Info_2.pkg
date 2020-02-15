@@ -1,0 +1,23 @@
+Struct tPrinter_Info_2
+    Address pServerName          
+    Address pPrinterName         
+    Address pShareName           
+    Address pPortName            
+    Address pDriverName          
+    Address pComment             
+    Address pLocation            
+    Address pDevMode             
+    Address pSepFile             
+    Address pPrintProcessor      
+    Address pDatatype            
+    Address pParameters          
+    Address pSecurityDescriptor  
+    UInteger Attributes       
+    UInteger Priority         
+    UInteger DefaultPriority  
+    UInteger StartTime        
+    UInteger UntilTime        
+    UInteger Status           
+    UInteger cJobs            
+    UInteger AveragePPM       
+End_Struct

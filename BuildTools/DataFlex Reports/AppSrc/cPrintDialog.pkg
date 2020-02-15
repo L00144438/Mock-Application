@@ -1,0 +1,862 @@
+Use cPrintDialog.h.pkg
+Use GlobalFunctionsProcedures.pkg
+Use tPrinter_Info_2.pkg
+
+External_Function DR_WinAPI_OpenPrinter "OpenPrinterA" WinSpool.Drv Pointer pPrinterName Pointer hPrinter Pointer pDefault Returns Integer
+External_Function DR_WinAPI_ClosePrinter "ClosePrinter" WinSpool.Drv Pointer hPrinter Returns Integer
+External_Function DR_WinAPI_GetPrinter "GetPrinterA" WinSpool.Drv Pointer hPrinter Integer Level Pointer pPrinter Integer cbBuf Pointer pcbNeeded Returns Integer
+
+{ ClassLibrary = Common }
+Class cPrintDialog is a cObject
+    Procedure Construct_Object
+        Forward Send Construct_Object
+
+        // Private properties
+        { DesignTime = False }
+        Property Handle phDevMode
+        { DesignTime = False }
+        Property Handle phDevNames
+        { DesignTime = False }
+        Property Handle phPrintDlg // Address of print
+        { DesignTime = False }
+        Property Handle phPageRanges
+        { DesignTime = False }
+        Property Boolean pbDefaultPrinterSelected
+
+        // DEVMODE properties
+        { Category = "DevMode" }
+        Property Short peOrientation DMORIENT_PORTRAIT
+        { Category = "DevMode" }
+        Property Short pePaperSize
+        { Category = "DevMode" }
+        Property Short piPaperLength
+        { Category = "DevMode" }
+        Property Short piPaperWidth
+        { Category = "DevMode" }
+        Property Short piScale
+        { Category = "DevMode" }
+        Property Short piCopies 1
+        { Category = "DevMode" }
+        Property Short peDefaultSource
+        { Category = "DevMode" }
+        Property Short pePrintQuality
+        { Category = "DevMode" }
+        Property Short peColor
+        { Category = "DevMode" }
+        Property Short peDuplex
+        { Category = "DevMode" }
+        Property Integer piYResolution
+        { Category = "DevMode" }
+        Property Short peTTOption
+        { Category = "DevMode" }
+        Property Short peCollate
+        { Category = "DevMode" }
+        Property String psFormName
+        { Category = "DevMode" }
+        Property UInteger peNup
+        { Category = "DevMode" }
+        Property UInteger peICMMethod
+        { Category = "DevMode" }
+        Property UInteger peICMIntent
+        { Category = "DevMode" }
+        Property UInteger peMediaType
+        { Category = "DevMode" }
+        Property UInteger peDitherType
+
+        // DEVNAMES properties
+        { Category = "DevNames" }
+        Property String psDriverName
+        { Category = "DevNames" }
+        Property String psDeviceName
+        { Category = "DevNames" }
+        Property String psOutputName
+
+        // PRINTDLGEX properties
+        { Category = "PrintDlgEx" }
+        Property UInteger piMaxPageRanges 10 // Normally this should be enough
+        { Category = "PrintDlgEx" }
+        Property PRINTPAGERANGE[] pPageRanges
+        { Category = "PrintDlgEx" }
+        Property Handle phDC // Handle to the device context
+        { Category = "PrintDlgEx" }
+        Property UInteger piFlags (PD_NOPAGENUMS ior PD_NOSELECTION ior PD_USEDEVMODECOPIES)
+        { Category = "PrintDlgEx" }
+        Property UInteger piMinPage 1
+        { Category = "PrintDlgEx" }
+        Property UInteger piMaxPage 999999
+    End_Procedure
+
+    // Convert a string to a fixed length char array
+    { Visibility = Private }
+    Function StringToCharArray String sValue Integer iLength Returns UChar[]
+        Address aChar
+        UChar[iLength] uChars
+
+        Move (AddressOf (uChars)) to aChar
+        Move sValue to aChar
+
+        Function_Return uChars
+    End_Function
+
+    { Visibility = Private }
+    Procedure FreeAllocatedGlobalMemory
+        Handle hDevMode hDevNames hPrintDlg hPageRanges
+        Integer iResult
+
+        Get phDevMode to hDevMode
+        If (hDevMode <> 0) Begin
+            Move (GlobalFree (hDevMode)) to iResult
+            Set phDevMode to 0
+        End
+        
+        Get phDevNames to hDevNames
+        If (hDevNames <> 0) Begin
+            Move (GlobalFree (hDevNames)) to iResult
+            Set phDevNames to 0
+        End
+
+        Get phPrintDlg to hPrintDlg
+        If (hPrintDlg <> 0) Begin
+            Move (GlobalFree (hPrintDlg)) to iResult
+            Set phPrintDlg to 0
+        End
+        
+        Get phPageRanges to hPageRanges
+        If (hPageRanges <> 0) Begin
+            Move (GlobalFree (hPageRanges)) to iResult
+            Set phPageRanges to 0
+        End
+    End_Procedure
+
+    // While destroying the object release the memory globally allocated
+    Procedure Destroy_Object
+        Send FreeAllocatedGlobalMemory
+        
+        Forward Send Destroy_Object
+    End_Procedure
+
+    // Returns the window handle
+    Function OwnerHandle Returns Handle
+        Handle hoFocus hWnd
+
+        Get Focus of Desktop to hoFocus
+        If (hoFocus <> 0) Begin
+            Move (gOwnerWindowHandle (hoFocus)) to hWnd
+        End
+        
+        If (hWnd = 0) Begin
+            Move (GetDesktopWindow()) to hWnd
+        End
+
+        Function_Return hWnd
+    End_Function
+
+    // Initializes the DEVMODE structure and returns handle
+    { Visibility = Private }
+    Function InitDevMode Returns Handle
+        Pointer pDevmode
+        Handle hDevmode
+        Integer iResult
+        DEVMODE dm
+        String sDeviceName sFormName
+
+        // Free previously allocated memory
+        Get phDevMode to hDevmode
+        If (hDevmode <> 0) Begin
+            Move (GlobalFree (hDevmode)) to iResult
+            Set phDevMode to 0
+        End
+
+        // Allocate memory for DEVMODE structure
+        Move (GlobalAlloc (GMEM_MOVEABLE, SizeOfType (DEVMODE))) to hDevmode
+        If (hDevmode = 0) Begin
+            Function_Return 0
+        End
+
+        // Lock allocated memory
+        Move (GlobalLock (hDevmode)) to pDevmode
+        If (pDevmode = 0) Begin
+            Move (GlobalFree (hDevmode)) to iResult
+            Function_Return 0
+        End
+
+        Get psDeviceName to sDeviceName
+        Get StringToCharArray sDeviceName CCHDEVICENAME to dm.dmDeviceName
+        Move DM_SPECVERSION to dm.dmSpecVersion
+        Move (SizeOfType (DEVMODE)) to dm.dmSize
+
+        Get peOrientation to dm.dmOrientation
+        If (dm.dmOrientation <> 0) Begin
+            Move (dm.dmFields ior DM_ORIENTATION) to dm.dmFields
+        End
+
+        Get pePaperSize to dm.dmPaperSize
+        If (dm.dmPaperSize <> 0) Begin
+            Move (dm.dmFields ior DM_PAPERSIZE) to dm.dmFields
+        End
+
+        Get piPaperLength to dm.dmPaperLength
+        If (dm.dmPaperLength <> 0) Begin
+            Move (dm.dmFields ior DM_PAPERLENGTH) to dm.dmFields
+        End
+
+        Get piPaperWidth to dm.dmPaperWidth
+        If (dm.dmPaperWidth <> 0) Begin
+            Move (dm.dmFields ior DM_PAPERWIDTH) to dm.dmFields
+        End
+
+        Get piScale to dm.dmScale
+        If (dm.dmScale <> 0) Begin
+            Move (dm.dmFields ior DM_SCALE) to dm.dmFields
+        End
+
+        Get piCopies to dm.dmCopies
+        If (dm.dmCopies <> 0) Begin
+            Move (dm.dmFields ior DM_COPIES) to dm.dmFields
+        End
+
+        Get peDefaultSource to dm.dmDefaultSource
+        If (dm.dmDefaultSource <> 0) Begin
+            Move (dm.dmFields ior DM_DEFAULTSOURCE) to dm.dmFields
+        End
+
+        Get pePrintQuality to dm.dmPrintQuality
+        If (dm.dmPrintQuality <> 0)  Begin
+            Move (dm.dmFields ior DM_PRINTQUALITY) to dm.dmFields
+        End
+
+        Get peColor to dm.dmColor
+        If (dm.dmColor <> 0) Begin
+            Move (dm.dmFields ior DM_COLOR) to dm.dmFields
+        End
+
+        Get peDuplex to dm.dmDuplex
+        If (dm.dmDuplex <> 0) Begin
+            Move (dm.dmFields ior DM_DUPLEX) to dm.dmFields
+        End
+
+        Get piYResolution to dm.dmYResolution
+        If (dm.dmYResolution <> 0) Begin
+            Move (dm.dmFields ior DM_YRESOLUTION) to dm.dmFields
+        End
+
+        Get peTTOption to dm.dmTTOption
+        If (dm.dmTTOption <> 0) Begin
+            Move (dm.dmFields ior DM_TTOPTION) to dm.dmFields
+        End
+
+        Get psFormName to sFormName
+        Get StringToCharArray sFormName CCHFORMNAME to dm.dmFormName
+        If (sFormName <> "") Begin
+            Move (dm.dmFields ior DM_FORMNAME) to dm.dmFields
+        End
+
+        Get peCollate to dm.dmCollate
+        If (dm.dmCollate <> 0) Begin
+            Move (dm.dmFields ior DM_COLLATE) to dm.dmFields
+        End
+
+        Get peNup to dm.dmNup
+        If (dm.dmNup <> 0) Begin
+            Move (dm.dmFields ior DM_NUP) to dm.dmFields
+        End
+
+        Get peICMMethod to dm.dmICMMethod
+        If (dm.dmICMMethod <> 0) Begin
+            Move (dm.dmFields ior DM_ICMMETHOD) to dm.dmFields
+        End
+
+        Get peICMIntent to dm.dmICMIntent
+        If (dm.dmICMIntent <> 0) Begin
+            Move (dm.dmFields ior DM_ICMINTENT) to dm.dmFields
+        End
+
+        Get peMediaType to dm.dmMediaType
+        If (dm.dmMediaType <> 0) Begin
+            Move (dm.dmFields ior DM_MEDIATYPE) to dm.dmFields
+        End
+
+        Get peDitherType to dm.dmDitherType
+        If (dm.dmDitherType <> 0) Begin
+            Move (dm.dmFields ior DM_DITHERTYPE) to dm.dmFields
+        End
+
+        // Copy the DEVMODE structure and unlock memory
+        Move (CopyMemory (pDevmode, AddressOf (dm), SizeOfType (DEVMODE))) to iResult
+        Move (GlobalUnlock (hDevmode)) to iResult
+        
+        // Store the memory handle
+        Set phDevMode to hDevmode
+
+        Function_Return hDevmode
+    End_Function
+
+    // Converts a fixed length char array to a string
+    Function CharArrayToString UChar[] uChars Returns String
+        Integer iChars iChar
+        String sValue
+
+        Move (SizeOfArray (uChars)) to iChars
+        Decrement iChars
+        For iChar from 0 to iChars
+            Move (sValue + Character (uChars[iChar])) to sValue
+        Loop
+
+        Function_Return sValue
+    End_Function 
+
+    // Pass on a devmode structure
+    Procedure ReadDevModeData DEVMODE dm
+        String sDeviceName
+
+        Get CharArrayToString dm.dmDeviceName to sDeviceName
+        Set psDeviceName to sDeviceName
+
+        If (dm.dmFields iand DM_ORIENTATION) Begin
+            Set peOrientation to dm.dmOrientation
+        End
+
+        If (dm.dmFields iand DM_PAPERSIZE) Begin
+            Set pePaperSize to dm.dmPaperSize
+        End
+
+        If (dm.dmFields iand DM_PAPERLENGTH) Begin
+            Set piPaperLength to dm.dmPaperLength
+        End
+
+        If (dm.dmFields iand DM_PAPERWIDTH) Begin
+            Set piPaperWidth to dm.dmPaperWidth
+        End
+
+        If (dm.dmFields iand DM_SCALE) Begin
+            Set piScale to dm.dmScale
+        End
+
+        If (dm.dmFields iand DM_COPIES) Begin
+            Set piCopies to dm.dmCopies
+        End
+
+        If (dm.dmFields iand DM_DEFAULTSOURCE) Begin
+            Set peDefaultSource to dm.dmDefaultSource
+        End
+
+        If (dm.dmFields iand DM_PRINTQUALITY) Begin
+            Set pePrintQuality to dm.dmPrintQuality
+        End
+
+        If (dm.dmFields iand DM_COLOR) Begin
+            Set peColor to dm.dmColor
+        End
+
+        If (dm.dmFields iand DM_DUPLEX) Begin
+            Set peDuplex to dm.dmDuplex
+        End
+
+        If (dm.dmFields iand DM_YRESOLUTION) Begin
+            Set piYResolution to dm.dmYResolution
+        End
+
+        If (dm.dmFields iand DM_TTOPTION) Begin
+            Set peTTOption to dm.dmTTOption
+        End
+
+        If (dm.dmFields iand DM_COLLATE) Begin
+            Set peCollate to dm.dmCollate
+        End
+
+        If (dm.dmFields iand DM_FORMNAME) Begin
+            Set psFormName to (AddressOf (dm.dmFormName))
+        End
+
+        If (dm.dmFields iand DM_ICMMETHOD) Begin
+            Set peICMMethod to dm.dmICMMethod
+        End
+
+        If (dm.dmFields iand DM_ICMINTENT) Begin
+            Set peICMIntent to dm.dmICMIntent
+        End
+
+        If (dm.dmFields iand DM_MEDIATYPE) Begin
+            Set peMediaType to dm.dmMediaType
+        End
+
+        If (dm.dmFields iand DM_DITHERTYPE) Begin
+            Set peDitherType to dm.dmDitherType
+        End
+
+        If (dm.dmFields iand DM_NUP) Begin
+            Set peNup to dm.dmNup
+        End
+    End_Procedure
+
+    { Visibility = Private }
+    Procedure ReadDevMode
+        Integer iResult iVoid
+        Handle hDevMode
+        Pointer pDevMode
+        DEVMODE dm
+
+        Get phDevMode to hDevMode
+        If (hDevMode = 0) Begin
+            Procedure_Return
+        End
+
+        // Lock allocated memory
+        Move (GlobalLock (hDevmode)) to pDevMode
+        If (pDevmode = 0) Begin
+            Procedure_Return
+        End
+
+        // Copy the information from the memory pointer
+        Move (CopyMemory (AddressOf (dm), pDevMode, SizeOfType (DEVMODE))) to iVoid
+
+        // Copy the devmode data to properties of the cPrintDialog object
+        Send ReadDevModeData dm
+
+        // Unlock the memory
+        Move (GlobalUnlock (hDevMode)) to iResult
+    End_Procedure
+
+    // Initializes the DEVNAMES structure and returns handle
+    { Visibility = Private }
+    Function InitDevNames Returns Handle
+        String sDriverName sDeviceName sOutputName
+        Integer iResult iSize
+        Pointer pDevNames
+        Handle hDevNames
+        DEVNAMES dn
+
+        // Free peviously allocated memory
+        Get phDevNames to hDevNames
+        If (hDevNames) Begin
+            Move (GlobalFree (hDevNames)) to iResult
+            Set phDevNames to 0
+        End
+
+        // Calculate size
+        Get psDriverName to sDriverName
+        Get psDeviceName to sDeviceName
+        Get psOutputName to sOutputName
+
+        Move (sDriverName + Character(0)) to sDriverName
+        Move (sDeviceName + Character(0)) to sDeviceName
+        Move (sOutputName + Character(0)) to sOutputName
+
+        Move (Length (sDriverName) + Length (sDeviceName) + Length (sOutputName)) to iSize
+
+        // Allocate memory for DEVNAMES structure
+        Move (GlobalAlloc (GMEM_MOVEABLE, SizeOfType (DEVNAMES) + iSize)) to hDevNames
+        If (hDevNames = 0) Begin
+            Function_Return 0
+        End
+
+        // Lock allocated memory
+        Move (GlobalLock (hDevNames)) to pDevNames
+        If (pDevNames = 0) Begin
+            Move (GlobalFree (hDevNames)) to iResult
+            Function_Return 0
+        End
+
+        // Copy the driver, device and output names in the extension of the struct
+        Move (SizeOfType (DEVNAMES)) to iSize
+        Move iSize to dn.wDriverOffset
+        Move (CopyMemory (pDevNames + iSize, AddressOf (sDriverName), Length (sDriverName))) to iResult
+
+        Move (iSize + Length (sDriverName)) to iSize
+        Move iSize to dn.wDeviceOffset
+        Move (CopyMemory (pDevNames + iSize, AddressOf (sDeviceName), Length (sDeviceName))) to iResult
+
+        Move (iSize + Length (sDeviceName)) to iSize
+        Move iSize to dn.wOutputOffset
+        Move (CopyMemory (pDevNames + iSize, AddressOf (sOutputName), Length (sOutputName))) to iResult
+
+        // Copy the DEVNAMES structure and unlock memory
+        Move (CopyMemory (pDevNames, AddressOf (dn), SizeOfType (DEVNAMES))) to iResult
+        Move (GlobalUnlock (hDevNames)) to iResult
+        
+        // Store the memory handle
+        Set phDevNames to hDevNames
+
+        Function_Return hDevNames
+    End_Function
+
+    { Visibility = Private }
+    Procedure ReadDevNames
+        Integer iResult iVoid
+        Handle hDevNames
+        Pointer pDevNames
+        DEVNAMES dn
+        Address aData
+
+        Get phDevNames to hDevNames
+        If (hDevNames = 0) Begin
+            Procedure_Return
+        End
+
+        // Lock memory
+        Move (GlobalLock (hDevNames)) to pDevNames
+        If (pDevNames = 0) Begin
+            Procedure_Return
+        End
+
+        // Copy the the devnames structure, devnames structure only contains the pointers to the names 
+        Move (CopyMemory (AddressOf (dn), pDevNames, SizeOfType (DEVNAMES))) to iVoid
+
+        // Copy the drivername from the memory pointer to the DataFlex property
+        Move (pDevNames + dn.wDriverOffset) to aData
+        Set psDriverName to aData
+
+        // Copy the devicename from the memory pointer to the DataFlex property
+        Move (pDevNames + dn.wDeviceOffset) to aData
+        Set psDeviceName to aData
+
+        // Copy the outputname from the memory pointer to the DataFlex property
+        Move (pDevNames + dn.wOutputOffset) to aData
+        Set psOutputName to aData
+
+        Set pbDefaultPrinterSelected to dn.wDefault
+
+        // Unlock memory
+        Move (GlobalUnlock (hDevNames)) to iResult
+    End_Procedure
+	
+    // Initializes the PAGERANGES structure in case the developer did not do that to avoid
+    // a 0x80070057 (Invalid Parameter) error if the flag PD_NOPAGENUMS is not set
+    Procedure InitPageRanges Integer iLastPage
+	    PRINTPAGERANGE[] PageRanges
+		
+	    Get pPageRanges to PageRanges
+	    If (SizeOfArray (PageRanges) = 0) Begin
+	        Move 1 to PageRanges[0].nFromPage
+	        Move iLastPage to PageRanges[0].nToPage
+  	        Set pPageRanges to PageRanges
+        End
+    End_Procedure
+
+    // Shows the print dialog
+    Function PrintDialog Returns Integer
+        Handle hDevMode hDevNames hPrintDlg hResult hPageRanges
+        Integer iResult iVoid
+        UInteger iFlags
+        PRINTDLGEX pd
+        PRINTPAGERANGE[] PageRanges
+
+        // Free previously allocated memory
+        Send FreeAllocatedGlobalMemory
+
+        // Allocate memory for PRINTDLGEX structure
+        Move (GlobalAlloc (GPTR, SizeOfType (PRINTDLGEX))) to hPrintDlg
+        If (hPrintDlg = 0) Begin
+            Function_Return False
+        End
+
+        Get piFlags to iFlags
+
+        // Return the printer device context
+        Move (iFlags ior PD_RETURNDC) to iFlags
+        
+        // Copy the page ranges array information
+        If (not (IsFlagIn (PD_NOPAGENUMS, iFlags))) Begin
+            Get piMaxPageRanges to pd.nMaxPageRanges
+            If (pd.nMaxPageRanges <= 0) Begin
+                Move 10 to pd.nMaxPageRanges
+                Set piMaxPageRanges to 10
+            End
+            Get pPageRanges to PageRanges
+            Move (SizeOfArray (PageRanges)) to pd.nPageRanges
+            If (pd.nPageRanges > 0) Begin
+                Move (GlobalAlloc (GPTR, pd.nPageRanges * SizeOfType (PRINTPAGERANGE))) to hPageRanges
+                If (hPageRanges = 0) Begin
+                    Move 0 to pd.nPageRanges
+                End
+                Else Begin
+                    Move (CopyMemory (hPageRanges, AddressOf (PageRanges), pd.nPageRanges * SizeOfType (PRINTPAGERANGE))) to iResult
+                    Move hPageRanges to pd.lpPageRanges
+                    Set phPageRanges to hPageRanges
+                End
+            End
+        End
+
+        // Filter unsupported flags
+        If (IsFlagIn (PD_ENABLEPRINTTEMPLATE, iFlags)) Begin
+            Move (iFlags - PD_ENABLEPRINTTEMPLATE) to iFlags
+        End
+        If (IsFlagIn (PD_ENABLEPRINTTEMPLATEHANDLE, iFlags)) Begin
+            Move (iFlags - PD_ENABLEPRINTTEMPLATEHANDLE) to iFlags
+        End
+        If (IsFlagIn (PD_USELARGETEMPLATE, iFlags)) Begin
+            Move (iFlags - PD_USELARGETEMPLATE) to iFlags
+        End
+
+        // If the PD_RETURNDEFAULT flag is set the hDevMode and hDevNames must be zero
+        If (IsFlagIn (PD_RETURNDEFAULT, iFlags)) Begin
+            Move 0 to hDevMode
+            Move 0 to hDevNames
+        End
+        Else Begin
+            Get InitDevMode to hDevMode
+            If (hDevMode = 0) Begin
+                Function_Return PD_RESULT_CANCEL
+            End
+            Get InitDevNames to hDevNames
+            If (hDevNames = 0) Begin
+                Function_Return PD_RESULT_CANCEL
+            End
+        End
+
+        Move (SizeOfType (PRINTDLGEX)) to pd.lStructSize
+        Get OwnerHandle to pd.hwndOwner
+        Move hDevMode to pd.hDevMode
+        Move hDevNames to pd.hDevNames
+        Move iFlags to pd.Flags
+        Get piMinPage to pd.nMinPage
+        Get piMaxPage to pd.nMaxPage
+        Get piCopies to pd.nCopies
+        Move START_PAGE_GENERAL to pd.nStartPage
+
+        // Copy the PRINTDLGEX structure
+        Move (CopyMemory (hPrintDlg, AddressOf (pd), SizeOfType (PRINTDLGEX))) to iVoid
+
+        // Call the printdlgex function, this may open a dialog
+        Move (PrintDlgEx (hPrintDlg)) to hResult
+        If (hResult = S_OK) Begin
+            Set phPrintDlg to hPrintDlg
+
+            Move (CopyMemory (AddressOf (pd), hPrintDlg, SizeOfType (PRINTDLGEX))) to iVoid
+
+            Set piFlags to pd.Flags
+            Set piMinPage to pd.nMinPage
+            Set piMaxPage to pd.nMaxPage
+            Set piCopies to pd.nCopies
+            If (not (IsFlagIn (PD_NOPAGENUMS, pd.Flags))) Begin
+                Set piMaxPageRanges to pd.nMaxPageRanges
+                If (pd.lpPageRanges <> 0) Begin
+                    Move (CopyMemory (AddressOf (PageRanges), pd.lpPageRanges, pd.nPageRanges * SizeOfType (PRINTPAGERANGE))) to iVoid
+                    Set pPageRanges to PageRanges
+                End
+            End
+            Set phDC to pd.hDC
+            Set phDevMode to pd.hDevMode
+            Set phDevNames to pd.hDevNames
+
+            Send ReadDevMode
+            Send ReadDevNames
+
+            If (IsFlagIn (PD_RETURNDEFAULT, pd.Flags)) Begin
+                Function_Return PD_RESULT_PRINT
+            End
+
+            Function_Return pd.dwResultAction
+        End
+        Else Begin
+            Function_Return iResult
+        End
+    End_Function
+
+    Function SelectPrinter Returns Boolean
+        Handle hDevMode hDevNames hPrintDlg hPageRanges
+        Integer iResult iVoid iMaxPageRanges
+        UInteger iFlags
+        String sDeviceName
+        PRINTDLGEX pd
+        PRINTPAGERANGE[] PageRanges
+
+        // Free previously allocated memory
+        Send FreeAllocatedGlobalMemory
+
+        Get InitDevNames to hDevNames
+        If (hDevNames = 0) Begin
+            Function_Return PD_RESULT_CANCEL
+        End
+        
+        Get InitDevMode to hDevMode
+        If (hDevMode = 0) Begin
+            Function_Return PD_RESULT_CANCEL
+        End
+
+        Get psDeviceName to sDeviceName
+        If (sDeviceName = '') Begin
+            Function_Return PD_RESULT_CANCEL
+        End
+
+        // Allocate memory for PRINTDLGEX structure
+        Move (GlobalAlloc (GPTR, SizeOfType (PRINTDLGEX))) to hPrintDlg
+        If (hPrintDlg = 0) Begin
+            Function_Return False
+        End
+
+        Get piFlags to iFlags
+
+        // Return the printer device context
+        Move (iFlags ior PD_RETURNDC) to iFlags
+
+        // Filter unsupported flags
+        If (IsFlagIn (PD_ENABLEPRINTTEMPLATE, iFlags)) Begin
+            Move (iFlags - PD_ENABLEPRINTTEMPLATE) to iFlags
+        End
+        If (IsFlagIn (PD_ENABLEPRINTTEMPLATEHANDLE, iFlags)) Begin
+            Move (iFlags - PD_ENABLEPRINTTEMPLATEHANDLE) to iFlags
+        End
+        If (IsFlagIn (PD_USELARGETEMPLATE, iFlags)) Begin
+            Move (iFlags - PD_USELARGETEMPLATE) to iFlags
+        End
+
+        Move (SizeOfType (PRINTDLGEX)) to pd.lStructSize
+        Get OwnerHandle to pd.hwndOwner
+        Move hDevMode to pd.hDevMode
+        Move hDevNames to pd.hDevNames
+        Move iFlags to pd.Flags
+        Get piMinPage to pd.nMinPage
+        Get piMaxPage to pd.nMaxPage
+        Get piCopies to pd.nCopies
+        Move START_PAGE_GENERAL to pd.nStartPage
+
+        // Copy the page ranges array information
+        Get piMaxPageRanges to iMaxPageRanges
+        If (iMaxPageRanges > 0) Begin
+            Get pPageRanges to PageRanges
+            Move (SizeOfArray (PageRanges)) to pd.nPageRanges
+            If (pd.nPageRanges > 0) Begin
+                Move (GlobalAlloc (GPTR, pd.nPageRanges * SizeOfType (PRINTPAGERANGE))) to hPageRanges
+                If (hPageRanges = 0) Begin
+                    Move 0 to pd.nPageRanges
+                End
+                Else Begin
+                    Move (CopyMemory (hPageRanges, AddressOf (PageRanges), pd.nPageRanges * SizeOfType (PRINTPAGERANGE))) to iResult
+                    Move hPageRanges to pd.lpPageRanges
+                    Set phPageRanges to hPageRanges
+                End
+            End
+        End
+
+        Move (CopyMemory (hPrintDlg, AddressOf (pd), SizeOfType (PRINTDLGEX))) to iVoid
+        Set phPrintDlg to hPrintDlg
+
+        Function_Return PD_RESULT_PRINT
+    End_Function
+
+    Function DRPrinterDevMode String sPrinterName Returns Boolean
+        Handle hPrinter hDevMode hPrintDlg hDevNames
+        Pointer pDevMode
+        Address aData
+        Integer iResult cbNeeded iBytes iFlags
+        Boolean bPrinterDataRead
+        tPrinter_Info_2 PrinterInfo
+        DEVMODE PrinterInfoDevMode
+        PRINTDLGEX pd
+
+        If (sPrinterName <> "") Begin
+            // Free previously allocated memory
+            Send FreeAllocatedGlobalMemory
+
+            Move 0 to hPrinter
+            Move (DR_WinAPI_OpenPrinter (AddressOf (sPrinterName), AddressOf (hPrinter), 0)) to iResult
+            If (iResult <> 0) Begin
+                Move 0 to cbNeeded
+                Move (DR_WinAPI_GetPrinter (hPrinter, 2, 0, 0, AddressOf (cbNeeded))) to iResult
+                If (iResult = 0) Begin
+                    Move (Alloc (cbNeeded)) to aData
+                    Move (DR_WinAPI_GetPrinter (hPrinter, 2, aData, cbNeeded, AddressOf (cbNeeded))) to iResult
+                    If (iResult <> 0) Begin
+                        Move (MemCopy (AddressOf (PrinterInfo), aData, SizeOfType (tPrinter_Info_2))) to iResult
+                        Move (MemCopy (AddressOf (PrinterInfoDevMode), PrinterInfo.pDevMode, SizeOfType (DEVMODE))) to iResult
+                        Send ReadDevModeData PrinterInfoDevMode
+                        Move (SizeOfType (DEVMODE) + PrinterInfoDevMode.dmDriverExtra) to iBytes
+
+                        // Allocate memory for the extended DEVMODE structure
+                        Move (GlobalAlloc (GMEM_MOVEABLE, iBytes)) to hDevmode
+                        If (hDevmode = 0) Begin
+                            Move (Free (aData)) to iResult
+                            Function_Return False
+                        End
+
+                        // Lock allocated memory
+                        Move (GlobalLock (hDevmode)) to pDevmode
+                        If (pDevmode = 0) Begin
+                            Move (Free (aData)) to iResult
+                            Move (GlobalFree (hDevmode)) to iResult
+                            Function_Return False
+                        End
+
+                        Move (MemCopy (pDevMode, PrinterInfo.pDevMode, iBytes)) to iResult
+
+                        // Should be done after the devmode handling as the devmode information can contain wrong information
+                        Set psDeviceName to PrinterInfo.pPrinterName
+                        Set psOutputName to PrinterInfo.pPortName
+                        Set psDriverName to PrinterInfo.pDriverName
+
+                        // Free previously allocated memory
+                        Get phPrintDlg to hPrintDlg
+                        If (hPrintDlg <> 0) Begin
+                            Move (GlobalFree (hPrintDlg)) to iResult
+                            Set phPrintDlg to 0
+                        End
+
+                        // Allocate memory for PRINTDLGEX structure
+                        Move (GlobalAlloc (GPTR, SizeOfType (PRINTDLGEX))) to hPrintDlg
+                        If (hPrintDlg = 0) Begin
+                            Move (Free (aData)) to iResult
+                            If (pDevMode <> 0) Begin
+                                Move (GlobalUnlock (hDevMode)) to iResult
+                            End
+                            Move (GlobalFree (hDevmode)) to iResult
+                            Function_Return False
+                        End
+
+                        Get piFlags to iFlags
+
+                        // Return the printer device context
+                        Move (iFlags ior PD_RETURNDC) to iFlags
+
+                        // Filter unsupported flags
+                        If (IsFlagIn (PD_ENABLEPRINTTEMPLATE, iFlags)) Begin
+                            Move (iFlags - PD_ENABLEPRINTTEMPLATE) to iFlags
+                        End
+                        If (IsFlagIn (PD_ENABLEPRINTTEMPLATEHANDLE, iFlags)) Begin
+                            Move (iFlags - PD_ENABLEPRINTTEMPLATEHANDLE) to iFlags
+                        End
+                        If (IsFlagIn (PD_USELARGETEMPLATE, iFlags)) Begin
+                            Move (iFlags - PD_USELARGETEMPLATE) to iFlags
+                        End
+
+                        Move (SizeOfType (PRINTDLGEX)) to pd.lStructSize
+                        Get OwnerHandle to pd.hwndOwner
+                        Move hDevMode to pd.hDevMode
+                        Get InitDevNames to pd.hDevNames
+                        Move iFlags to pd.Flags
+                        Get piMinPage to pd.nMinPage
+                        Get piMaxPage to pd.nMaxPage
+                        Get piCopies to pd.nCopies
+                        Move START_PAGE_GENERAL to pd.nStartPage
+
+                        // Copy the data from the pd Structure onto the locked memory retrieved before
+                        Move (MemCopy (hPrintDlg, AddressOf (pd), SizeOfType (PRINTDLGEX))) to iResult
+                        Set phPrintDlg to hPrintDlg
+
+                        // Release the memory lock and copy the handle to the phDevMode property
+                        Move (GlobalUnlock (hDevmode)) to iResult
+                        Set phDevMode to hDevmode
+                        
+                        Move True to bPrinterDataRead
+                    End
+                    Move (Free (aData)) to iResult
+                End
+                Move (DR_WinAPI_ClosePrinter (hPrinter)) to iResult
+            End
+        End
+
+        Function_Return bPrinterDataRead
+    End_Function
+
+    Function ReadPrinterDevMode String sPrinterName Returns Integer
+        Boolean bPrinterDataRead
+
+        Get DRPrinterDevMode sPrinterName to bPrinterDataRead
+        If (not (bPrinterDataRead)) Begin
+            Set psDeviceName to ''
+            Function_Return PD_RESULT_CANCEL
+        End
+
+        Function_Return PD_RESULT_PRINT
+    End_Function
+End_Class

@@ -1,0 +1,27 @@
+Use cDRMenuItem.pkg
+Use DRLanguage.Inc
+
+{ ClassLibrary = Windows }
+Class cDRFirstPageMenuItem is a cDRMenuItem
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        Set psCaption to C_$DRFirstPage
+        Set psToolTip to C_$DRGoToTheFirstPage
+        Set psDescription to C_$DRJumpsToTheFirstPageOfTheReport
+        Set psShortcut to C_$DRCtrlHomeShortCut
+        Set psImage to "DRFirstPage.ico"
+    End_Procedure
+    
+    Procedure OnExecute Variant vCommandBarControl
+        Handle hoReport
+        
+        Get ReportObject to hoReport
+        If (hoReport > 0) Begin
+            Send PreviewFirstPage of hoReport
+        End
+        Else Begin
+            Error DFERR_DATAFLEX_REPORTS C_$DRNoReportIdSpecified
+        End
+    End_Procedure
+End_Class

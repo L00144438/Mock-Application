@@ -1,0 +1,362 @@
+Use Windows.pkg
+Use DFRptVw.pkg
+Use File_Dlg.Pkg
+
+Use cDRReport.pkg
+Use cDRPreview.pkg
+Use DRStatuspanel.dg
+
+// Use the data-dictionary to include the selectionlist and open the customer table
+Use cCustomerDataDictionary.dd
+
+// This example shows how to integrate a crosstab based report in the application. Displaying the grand total 
+// and/or a total column/row is controllable via the interface. The interface also allows sorting of the year 
+// columns ascending or descending. By selecting a credit limit or the customer's active state the results of 
+// the crosstab will be changed
+
+Deferred_View Activate_oSalesperStateperYearReportView for ;
+Object oSalesperStateperYearReportView is a ReportView
+    Set Label to "Sales per State per Year"
+    Set Icon to 'DR.Ico'
+
+    Object oCustomer_DD is a cCustomerDataDictionary
+    End_Object
+
+    Object oReport is a cDRReport
+        Set pbShowStatusPanel to True
+        Set phoStatusPanel to oDRStatusPanel
+        Set psReportName to "Sales per State per Year.dr"
+
+        Procedure OnCreate
+            Forward Send OnCreate
+            
+            Set piReportLanguage '' to LANG_NEUTRAL
+        End_Procedure
+
+        Procedure OnInitializeReport
+            Integer eOutputDeviceMode
+
+            Forward Send OnInitializeReport
+
+            // Convert from the ReportView Output_Device_Mode to peOutputDestination
+            Get Output_Device_Mode to eOutputDeviceMode
+            Set peOutputDestination to eOutputDeviceMode
+
+            Send SetFilters
+            Send SetSortFields
+            Send SetParameters
+            Send SetFunctions
+        End_Procedure
+
+        Procedure SetParameters
+            Boolean bChecked
+            String sReportId
+            Integer iParameter
+
+            Get Checked_State of oShowGrandTotalCheckBox to bChecked
+            Get psReportId to sReportId
+            Get ParameterIdByName sReportId "GrandTotal" to iParameter
+            Set psParameterValue sReportId iParameter to bChecked
+        End_Procedure
+
+        Procedure SetFilters
+            String sReportId
+            String sCustomerCreditLimit
+            String sCustomerStatus
+
+            Get psReportId to sReportId
+
+            Get Value of oCustomerCreditLimit to sCustomerCreditLimit
+            If (sCustomerCreditLimit <> "") Begin
+                Send AddFilter sReportId "{Customer.Credit_Limit}" C_drGreaterThanOrEqual sCustomerCreditLimit
+            End
+
+            Get Value of oCustomerStatus to sCustomerStatus
+            If (Length (sCustomerStatus) > 0) Begin
+                Send AddFilter sReportId "{Customer.Status}" C_drEqual sCustomerStatus
+            End
+        End_Procedure
+
+        Procedure SetSortFields
+            String sReportId sValue
+
+            Get psReportId to sReportId
+
+            Get SelectedOption of oYearSortingComboForm to sValue
+            Set psFunction sReportId "OrderByYearSorting" to ("Return" * sValue)
+        End_Procedure
+
+        Procedure SetFunctions
+            String sReportId sValue
+
+            Get psReportId to sReportId
+
+            Get SelectedOption of oTotalRowComboForm to sValue
+            Set psFunction sReportId "TotalsPerState" to ("Return" * sValue)
+
+            Get SelectedOption of oTotalColumnComboForm to sValue
+            Set psFunction sReportId "TotalsPerYear" to ("Return" * sValue)
+        End_Procedure
+    End_Object
+
+    Object oSelectionsGroup is a Group
+        Set Size to 44 156
+        Set Location to 5 5
+        Set Label to "Selections"
+        Set peAnchors to anTopLeftRight
+
+        Object oCustomerCreditLimit is a Form
+            Set Size to 12 42
+            Set Location to 11 60
+            Set Label_Justification_Mode to jMode_Right
+            Set Label_Col_Offset to 2
+            Set Label to "Credit Limit"
+            Set Status_Help to "Enter a selection value."
+            Set psToolTip to "Enter a Value for the Customer Credit Limit"
+            Set Numeric_Mask 0 to 6 2
+        End_Object
+
+        Object oCustomerStatus is a ComboForm
+            Set Size to 12 42
+            Set Location to 26 60
+            Set Label_Justification_Mode to JMode_Right
+            Set Label_Col_Offset to 2
+            Set Label to "Active"
+            Set Status_Help to "Active Inactive Status of customer"
+            Set psToolTip to "Select Customer Active Status"
+            Set Entry_State to False
+            Set Combo_Sort_State to False
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item "" // The blank option is here to indicate all customers should be used
+                Send Combo_Add_Item "Y"
+                Send Combo_Add_Item "N"
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oOptionsGroup is a Group
+        Set Size to 67 156
+        Set Location to 51 5
+        Set Label to "Options"
+        Set peAnchors to anTopLeftRight
+
+        Object oShowGrandTotalCheckBox is a CheckBox
+            Set Size to 10 50
+            Set Location to 10 52
+            Set Label to "Show Grand Total"
+            Set psToolTip to "Show Grand Total"
+            Set Enabled_State to False
+        End_Object
+
+        Object oYearSortingComboForm is a ComboForm
+            Set Size to 12 100
+            Set Location to 22 52
+            Set Entry_State to False
+            Set Combo_Sort_State to False
+            Set Label to "Sort Years"
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set psToolTip to "Sort the Year Columns Ascending or Descending"
+
+            Function SelectedOption Returns String
+                String sValue
+                Integer iItem
+
+                Get Value to sValue
+                Get Combo_Item_Matching sValue to iItem
+                Case Begin
+                    Case (iItem = 0)
+                        Function_Return "drAscending"
+                        Case Break
+                    Case (iItem = 1)
+                        Function_Return "drDescending"
+                        Case Break
+                Case End
+            End_Function
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item "Ascending"
+                Send Combo_Add_Item "Descending"
+            End_Procedure
+        End_Object
+
+        Object oTotalRowComboForm is a ComboForm
+            Set Size to 12 100
+            Set Location to 36 52
+            Set Entry_State to False
+            Set Combo_Sort_State to False
+            Set Label to "Total Row"
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set psToolTip to "Display a Total Row on the Top or on the Bottom or do not Display a Total Row"
+
+            Function SelectedOption Returns String
+                String sValue
+                Integer iItem
+
+                Get Value to sValue
+                Get Combo_Item_Matching sValue to iItem
+                Case Begin
+                    Case (iItem = 0)
+                        Function_Return "drNoTotalRow"
+                        Case Break
+                    Case (iItem = 1)
+                        Function_Return "drTotalOnTop"
+                        Case Break
+                    Case (iItem = 2)
+                        Function_Return "drTotalOnBottom"
+                        Case Break
+                Case End
+            End_Function
+
+            Procedure OnChange
+                String sTotalRowOption sTotalColumnOption
+                Boolean bEnabled
+
+                Get SelectedOption to sTotalRowOption
+                Get SelectedOption of oTotalColumnComboForm to sTotalColumnOption
+
+                Move (sTotalRowOption <> "drNoTotalRow" and sTotalColumnOption <> "drNoTotalColumn") to bEnabled
+                Set Enabled_State of oShowGrandTotalCheckBox to bEnabled
+                If (not (bEnabled)) Begin
+                    Set Checked_State of oShowGrandTotalCheckBox to False
+                End
+            End_Procedure
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item "No Total Row"
+                Send Combo_Add_Item "Total Row on the Top"
+                Send Combo_Add_Item "Total Row on the Bottom"
+            End_Procedure
+        End_Object
+
+        Object oTotalColumnComboForm is a ComboForm
+            Set Size to 12 100
+            Set Location to 50 52
+            Set Entry_State to False
+            Set Combo_Sort_State to False
+            Set Label to "Total Column"
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set psToolTip to "Display a Total Column on the Left or on the Right or do not Display a Total Column"
+
+            Function SelectedOption Returns String
+                String sValue
+                Integer iItem
+
+                Get Value to sValue
+                Get Combo_Item_Matching sValue to iItem
+                Case Begin
+                    Case (iItem = 0)
+                        Function_Return "drNoTotalColumn"
+                        Case Break
+                    Case (iItem = 1)
+                        Function_Return "drTotalOnLeft"
+                        Case Break
+                    Case (iItem = 2)
+                        Function_Return "drTotalOnRight"
+                        Case Break
+                Case End
+            End_Function
+
+            Procedure OnChange
+                String sTotalRowOption sTotalColumnOption
+                Boolean bEnabled
+
+                Get SelectedOption of oTotalRowComboForm to sTotalRowOption
+                Get SelectedOption to sTotalColumnOption
+
+                Move (sTotalRowOption <> "drNoTotalRow" and sTotalColumnOption <> "drNoTotalColumn") to bEnabled
+                Set Enabled_State of oShowGrandTotalCheckBox to bEnabled
+                If (not (bEnabled)) Begin
+                    Set Checked_State of oShowGrandTotalCheckBox to False
+                End
+            End_Procedure
+
+            Procedure Combo_Fill_List
+                Send Combo_Add_Item "No Total Column"
+                Send Combo_Add_Item "Total Column on the Left"
+                Send Combo_Add_Item "Total Column on the right"
+            End_Procedure
+        End_Object
+    End_Object
+
+
+    Object oDestinationGroup Is A RadioGroup
+        Set Label to "Output destination"
+        Set Location to 120 5
+        Set Size to 46 156
+        Set peAnchors to anTopLeftRight
+
+        Object oScreenRadio Is A Radio
+            Set Label to "Preview"
+            Set Size to 10 60
+            Set Location to 10 6
+            Set Status_Help to "Print the report to screen"
+        End_Object
+
+        Object oPrinterRadio Is A Radio
+            Set Label to "Printer"
+            Set Size to 10 60
+            Set Location to 22 6
+            Set Status_Help to "Prints the report to printer"
+        End_Object
+
+        Object oExportRadio Is A Radio
+            Set Label to "Export"
+            Set Size to 10 60
+            Set Location to 34 6
+            Set Status_Help to "Outputs the report to disk file (PDF, CSV, Image, HTML, Excel, RTF)"
+        End_Object
+
+        Procedure Notify_Select_State Integer iNewItem Integer iOldItem
+            Forward Send Notify_Select_State iNewItem iOldItem
+
+            Case Begin
+                Case (iNewItem = 0)
+                    Set Output_Device_Mode to PRINT_TO_WINDOW
+                    Case Break
+                Case (iNewItem = 1)
+                    Set Output_Device_Mode to PRINT_TO_PRINTER
+                    Case Break
+                Case (iNewItem = 2)
+                    Set Output_Device_Mode to PRINT_TO_FILE
+                    Case Break
+            Case End
+        End_Procedure
+    End_Object
+
+    Object oPrintButton Is A Button
+        Set Label to "&Print"
+        Set Status_Help to "Print the report"
+        Set Size to 14 50
+        Set Location to 168 57
+        Set Default_State to True
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Send RunReport Of oReport
+        End_Procedure
+    End_Object
+
+    Object oCancelButton Is A Button
+        Set Label to "&Cancel"
+        Set Size to 14 50
+        Set Location to 168 111
+        Set Status_Help to "Cancel this Panel"
+        Set peAnchors to anBottomRight
+
+        // This procedure closes the report view.
+        Procedure OnClick
+            Send Request_Cancel
+        End_Procedure
+    End_Object
+
+    On_Key Key_Escape Send KeyAction of oCancelButton
+    On_Key Key_Alt+Key_C Send KeyAction of oCancelButton
+    On_Key Key_Alt+Key_P Send KeyAction of oPrintButton
+
+    Set Location to 6 5
+    Set Size to 186 165
+Cd_End_Object

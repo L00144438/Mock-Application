@@ -1,0 +1,57 @@
+Use Windows.pkg
+Use cCJGrid.pkg
+
+{ ClassLibrary = Windows }
+Class cDRSortColumnsGrid is a cCJGrid
+    Procedure Construct_Object
+        Forward Send Construct_Object
+
+        Set pbHeaderTogglesDirection to True
+        Set pbAllowColumnRemove to False
+        Set pbAllowAppendRow to False
+        Set pbAllowDeleteRow to False
+        Set pbAllowInsertRow to False
+        Set piFocusCellBackColor to clNone
+        Set piFocusCellForeColor to clNone
+        Set piFocusCellRectangleColor to clBlack
+        Set pbUseFocusCellRectangle to False
+        Set pbSelectionEnable to True
+    End_Procedure
+
+    Procedure SwitchRows Boolean bUp
+        Handle hoDataSource
+        tDataSourceRow[] SortColumnsData
+        Integer iRow
+
+        Get phoDataSource to hoDataSource
+        Get DataSource of hoDataSource to SortColumnsData
+        Get SelectedRow of hoDataSource to iRow
+        If (bUp) Begin
+            If (iRow > 0) Begin
+                Move (InsertInArray (SortColumnsData, (iRow - 1), SortColumnsData[iRow])) to SortColumnsData
+                Move (RemoveFromArray (SortColumnsData, (iRow + 1))) to SortColumnsData
+                Send InitializeData SortColumnsData
+                Send MoveToRow (iRow - 1)
+            End
+        End
+        Else Begin
+            If (iRow < (SizeOfArray (SortColumnsData) - 1)) Begin
+                Move (InsertInArray (SortColumnsData, iRow, SortColumnsData[(iRow + 1)])) to SortColumnsData
+                Move (RemoveFromArray (SortColumnsData, (iRow + 2))) to SortColumnsData
+                Send InitializeData SortColumnsData
+                Send MoveToRow (iRow + 1)
+            End
+        End
+    End_Procedure
+
+    Procedure Activating
+        Forward Send Activating
+
+        Send LoadData
+    End_Procedure
+    
+    { MethodType = Event }
+    Procedure LoadData
+        // Empty stub to be implemented in the view
+    End_Procedure
+End_Class

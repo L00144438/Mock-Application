@@ -1,0 +1,104 @@
+Use VdfBase.pkg
+
+Define CSIDL_DESKTOP                    for |CI$0000
+Define CSIDL_INTERNET                   for |CI$0001
+Define CSIDL_PROGRAMS                   for |CI$0002
+Define CSIDL_CONTROLS                   for |CI$0003
+Define CSIDL_PRINTERS                   for |CI$0004
+Define CSIDL_PERSONAL                   for |CI$0005 // Version 6.
+Define CSIDL_FAVORITES                  for |CI$0006
+Define CSIDL_STARTUP                    for |CI$0007
+Define CSIDL_RECENT                     for |CI$0008
+Define CSIDL_SENDTO                     for |CI$0009
+Define CSIDL_BITBUCKET                  for |CI$000A
+Define CSIDL_STARTMENU                  for |CI$000B
+Define CSIDL_MYDOCUMENTS                for |CI$000C
+Define CSIDL_MYMUSIC                    for |CI$000D
+Define CSIDL_MYVIDEO                    for |CI$000E // Version 6.
+Define CSIDL_DESKTOPDIRECTORY           for |CI$0010
+Define CSIDL_DRIVES                     for |CI$0011
+Define CSIDL_NETWORK                    for |CI$0012
+Define CSIDL_NETHOOD                    for |CI$0013
+Define CSIDL_FONTS                      for |CI$0014
+Define CSIDL_TEMPLATES                  for |CI$0015
+Define CSIDL_COMMON_STARTMENU           for |CI$0016
+Define CSIDL_COMMON_PROGRAMS            for |CI$0017
+Define CSIDL_COMMON_STARTUP             for |CI$0018
+Define CSIDL_COMMON_DESKTOPDIRECTORY    for |CI$0019
+Define CSIDL_COMMON_FAVORITES           for |CI$001F
+Define CSIDL_APPDATA                    for |CI$001A // Version 4.7
+Define CSIDL_PRINTHOOD                  for |CI$001B
+Define CSIDL_LOCAL_APPDATA              for |CI$001C // Version 5.
+Define CSIDL_ALTSTARTUP                 for |CI$001D
+Define CSIDL_COMMON_ALTSTARTUP          for |CI$001E
+Define CSIDL_INTERNET_CACHE             for |CI$0020 // Version 4.7
+Define CSIDL_COOKIES                    for |CI$0021
+Define CSIDL_HISTORY                    for |CI$0022
+Define CSIDL_COMMON_APPDATA             for |CI$0023 // Version 5.
+Define CSIDL_WINDOWS                    for |CI$0024 // Version 5.
+Define CSIDL_SYSTEM                     for |CI$0025 // Version 5.
+Define CSIDL_PROGRAM_FILES              for |CI$0026 // Version 5.
+Define CSIDL_MYPICTURES                 for |CI$0027 // Version 5.
+Define CSIDL_PROFILE                    for |CI$0028 // Version 5.
+Define CSIDL_SYSTEMX86                  for |CI$0029
+Define CSIDL_PROGRAM_FILESX86           for |CI$002A
+Define CSIDL_PROGRAM_FILES_COMMON       for |CI$002B // Version 5.
+Define CSIDL_PROGRAM_FILES_COMMONX86    for |CI$002C
+Define CSIDL_COMMON_TEMPLATES           for |CI$002D
+Define CSIDL_COMMON_DOCUMENTS           for |CI$002E
+Define CSIDL_COMMON_ADMINTOOLS          for |CI$002F // Version 5.
+Define CSIDL_ADMINTOOLS                 for |CI$0030 // Version 5.
+Define CSIDL_CONNECTIONS                for |CI$0031
+Define CSIDL_COMMON_MUSIC               for |CI$0035 // Version 6.
+Define CSIDL_COMMON_PICTURES            for |CI$0036 // Version 6.
+Define CSIDL_COMMON_VIDEO               for |CI$0037 // Version 6.
+Define CSIDL_RESOURCES                  for |CI$0038
+Define CSIDL_RESOURCES_LOCALIZED        for |CI$0039
+Define CSIDL_COMMON_OEM_LINKS           for |CI$003A
+Define CSIDL_CDBURN_AREA                for |CI$003B // Version 6.
+Define CSIDL_COMPUTERSNEARME            for |CI$003D
+
+Define SHGFP_TYPE_CURRENT for 0
+Define SHGFP_TYPE_DEFAULT for 1
+
+Define S_OK          for |CI$0
+Define S_FALSE       for |CI$1
+Define E_NOTIMPL     for |CI$80004001
+Define E_NOINTERFACE for |CI$80004002
+Define E_ABORT       for |CI$80004004
+Define E_FAIL        for |CI$80004005 // Unicode only
+Define E_INVALIDARG  for |CI$80070057
+
+#IFNDEF Get_SHGetFolderPath
+External_Function SHGetFolderPath "SHGetFolderPathA" shell32.dll Handle hWnd Integer iFolder Handle hToken DWord dwFlags Address lpszPath Returns Integer
+#ENDIF
+    
+Function WindowsFolderPath Global Integer iFolderID Boolean bCurrentPath Returns String
+    String sPath
+    Integer iRetval
+    
+    Move (Repeat (Character (0), MAX_PATH)) to sPath
+    
+    If (bCurrentPath) Begin
+        Move (SHGetFolderPath (0, iFolderId, 0, SHGFP_TYPE_CURRENT, AddressOf (sPath))) to iRetval
+    End
+    Else Begin
+        Move (SHGetFolderPath (0, iFolderId, 0, SHGFP_TYPE_DEFAULT, AddressOf (sPath))) to iRetval 
+    End
+    
+    Case Begin
+        Case (iRetval = S_OK) 
+            Move (CString (sPath)) to sPath
+            Move (ToOEM (sPath)) to sPath
+            Function_Return sPath
+        Case (iRetval = E_INVALIDARG)
+            Error DFERR_PROGRAM "Invalid FolderID passed to the function"
+            Function_Return ""
+        Case (iRetval = E_FAIL)
+            Error DFERR_PROGRAM "Invalid FolderID passed to the function"
+            Function_Return ""
+        Case (iRetval = S_FALSE)
+            Error DFERR_PROGRAM "FolderID is correct but folder does not exist"
+            Function_Return ""
+    Case End
+End_Function

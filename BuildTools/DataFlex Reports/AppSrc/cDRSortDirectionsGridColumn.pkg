@@ -1,0 +1,48 @@
+Use Windows.pkg
+Use cCJGridColumn.pkg
+Use cDRAPI.pkg
+
+{ ClassLibrary = Windows }
+Class cDRSortDirectionsGridColumn is a cCJGridColumn
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        Set pbComboButton to True
+        
+        Property String psAscendingText "Ascending"
+        Property String psDescendingText "Descending"
+    End_Procedure
+    
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+        
+        Send AddComboValues
+    End_Procedure
+    
+    { MethodType = Event }
+    Procedure AddComboValues
+        String sText
+        
+        Get psAscendingText to sText
+        Send ComboAddItem sText C_DRAscending
+        
+        Get psDescendingText to sText
+        Send ComboAddItem sText C_DRDescending
+    End_Procedure
+
+    Function SortDirection String sSortDirection Returns Integer
+        tComboItemData[] ComboDataValues
+        Integer iElements iElement
+        
+        Get ComboData to ComboDataValues
+        Move (SizeOfArray (ComboDataValues)) to iElements
+        Decrement iElements
+        For iElement from 0 to iElements
+            If (ComboDataValues[iElement].sCaption = sSortDirection) Begin
+                Function_Return ComboDataValues[iElement].iData
+            End
+        Loop
+        
+        Function_Return -1
+    End_Function
+End_Class

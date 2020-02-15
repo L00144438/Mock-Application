@@ -1,0 +1,32 @@
+Use cCJCommandBarSystem.pkg
+Use cDRMenuItem.pkg
+Use DRLanguage.Inc
+
+{ ClassLibrary = Windows }
+Class cDRExportMenuItem is a cDRMenuItem
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        Property Handle phoExportOptionsDialog 0
+
+        Set psCaption to C_$DRExport
+        Set psToolTip to C_$DRExportTheReport
+        Set pbControlBeginGroup to True
+        Set psImage to "DRExport.ico"
+    End_Procedure
+    
+    Procedure OnExecute Variant vCommandBarControl
+        Handle hoReport hoExportOptionsDialog
+        
+        Get ReportObject to hoReport
+        If (hoReport > 0) Begin
+            Get phoExportOptionsDialog to hoExportOptionsDialog
+            If (hoExportOptionsDialog > 0) Begin
+                Send ExportReport of hoExportOptionsDialog hoReport
+            End
+        End
+        Else Begin
+            Error DFERR_DATAFLEX_REPORTS C_$DRNoReportIdSpecified
+        End
+    End_Procedure
+End_Class

@@ -1,0 +1,340 @@
+Use cWebModalDialog.pkg
+Use cWebPanel.pkg
+Use cWebForm.pkg
+Use cWebGroup.pkg
+Use cWebMenuGroup.pkg
+Use cWebMenuItem.pkg
+Use cWebCheckbox.pkg
+Use cWebLabel.pkg
+Use cWebCombo.pkg
+Use cWebButton.pkg
+
+Use DRLanguage.Inc
+
+Object oExportReportDialog is a cWebModalDialog
+    Set psCaption to C_$DRExport
+    Set piWidth to 800
+    Set piColumnCount to 12
+
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 12
+
+        Object oExplanation is a cWebLabel
+            Set piColumnSpan to 0
+            Set psCaption to C_$DRExportExplanation
+        End_Object
+
+        Object oOutputCombo is a cWebCombo
+            Set psLabel to C_$DRExportTo
+            Set peLabelAlign to alignRight
+            Set piColumnSpan to 5
+            Set pbServerOnChange to True
+
+            Procedure OnChange String sNewValue String sOldValue
+                // Compare values MUST be hardcoded!
+                WebSet pbRender of oOwnerPasswordForm to (sNewValue = "PDF")
+                WebSet pbRender of oUserPasswordForm to (sNewValue = "PDF")
+                WebSet pbRender of oPageModeCombo to (sNewValue = "PDF")
+                WebSet pbRender of oImageQualityCombo to (sNewValue = "PDF")
+                WebSet pbRender of oPDFTypeCombo to (sNewValue = "PDF")
+                WebSet pbRender of oFieldSeparatorForm to (sNewValue = "CSV")
+                WebSet pbRender of oFieldDelimiterForm to (sNewValue = "CSV")
+                WebSet pbRender of oExportGroupSectionsCheckbox to ("XLS|XLSX|CSV" contains sNewValue)
+                WebSet pbRender of oExportPageSectionsCheckbox to ("XLS|XLSX|CSV" contains sNewValue)
+                WebSet pbRender of oExportReportSectionsCheckbox to ("XLS|XLSX|CSV" contains sNewValue)
+                WebSet pbRender of oNewSheetsCombo to ("XLS|XLSX" contains sNewValue)
+                WebSet pbRender of oExportDataOnlyCheckbox to ("XLS|XLSX" contains sNewValue)
+                WebSet pbRender of oColumnWidthForm to ("XLS|XLSX" contains sNewValue)
+            End_Procedure
+
+            Procedure OnFill
+                Forward Send OnFill
+
+                Send AddComboItem "CSV" C_$DRCSV
+                Send AddComboItem "HTML" C_$DRHTML
+                Send AddComboItem "GIF" C_$DRGIF
+                Send AddComboItem "JPEG" C_$DRJPEG
+                Send AddComboItem "PNG" C_$DRPNG
+                Send AddComboItem "PDF" C_$DRPDF
+                Send AddComboItem "RTF" C_$DRRTF
+                Send AddComboItem "TIFF" C_$DRTIFF
+                Send AddComboItem "XLS" C_$DRXLS2003
+                Send AddComboItem "XLSX" C_$DRXLS2007
+            End_Procedure
+        End_Object
+
+        Object oAllPagesCheckbox is a cWebCheckbox
+            Set psLabel to C_$DRAllPages
+            Set piColumnSpan to 1
+            Set pbShowLabel to True
+            Set pbServerOnChange to True
+            Set peLabelAlign to alignRight
+
+            Procedure OnChange String sNewValue String sOldValue
+                WebSet pbEnabled of oPageNumberForm to (sNewValue = "0")
+            End_Procedure
+        End_Object
+
+        Object oPageNumberForm is a cWebForm
+            Set psLabel to C_$DRPageNumber
+            Set piColumnSpan to 3
+            Set peLabelAlign to alignRight
+            Set piColumnIndex to 2
+            Set piMaxLength to 6
+            Set piPrecision to 0
+        End_Object
+
+        Object oDestinationCombo is a cWebCombo
+            Set psLabel to C_$DRDestination
+            Set peLabelAlign to alignRight
+            Set piColumnSpan to 5
+
+            Procedure OnFill
+                Forward Send OnFill
+
+                Send AddComboItem btCurrentWindow C_$DRCurrentWindow
+                Send AddComboItem btNewWindow C_$DRNewWindow
+                Send AddComboItem btNewTab C_$DRNewTab
+            End_Procedure
+        End_Object
+
+        Object oPDFTypeCombo is a cWebCombo
+            Set psLabel to C_$DRPDFType
+            Set peLabelAlign to alignRight
+            Set piColumnSpan to 5
+
+            Procedure OnFill
+                Forward Send OnFill
+
+                Send AddComboItem C_drPDFNormal C_$DRPDFNormal
+                Send AddComboItem C_drPDFA C_$DRPDFA
+            End_Procedure
+        End_Object
+
+        Object oOwnerPasswordForm is a cWebForm
+            Set psLabel to C_$DROwnerPassword
+            Set piColumnSpan to 5
+            Set peLabelAlign to alignRight
+        End_Object
+
+        Object oUserPasswordForm is a cWebForm
+            Set psLabel to C_$DRUserPassword
+            Set piColumnSpan to 6
+            Set peLabelAlign to alignRight
+            Set piColumnIndex to 5
+        End_Object
+
+        Object oPageModeCombo  is a cWebCombo
+            Set psLabel to C_$DRPageMode
+            Set peLabelAlign to alignRight
+            Set piColumnSpan to 5
+
+            Procedure OnFill
+                Forward Send OnFill
+
+                Send AddComboItem C_drNormal C_$DRNormal
+                Send AddComboItem C_drOutline C_$DROutline
+                Send AddComboItem C_drThumbs C_$DRThumbs
+                Send AddComboItem C_drFullScreen C_$DRFullScreen
+            End_Procedure
+        End_Object
+
+        Object oImageQualityCombo  is a cWebCombo
+            Set psLabel to C_$DRImgQuality
+            Set peLabelAlign to alignRight
+            Set piColumnSpan to 5
+
+            Procedure OnFill
+                Forward Send OnFill
+
+                Send AddComboItem C_drLow C_$DRLow
+                Send AddComboItem C_drHigh C_$DRHigh
+            End_Procedure
+        End_Object
+
+        Object oFieldSeparatorForm is a cWebForm
+            Set psLabel to C_$DRSeparator
+            Set piColumnSpan to 3
+            Set peLabelAlign to alignRight
+        End_Object
+
+        Object oFieldDelimiterForm is a cWebForm
+            Set psLabel to C_$DRDelimiter
+            Set piColumnSpan to 3
+            Set peLabelAlign to alignRight
+            Set piColumnIndex to 3
+        End_Object
+
+        Object oExportGroupSectionsCheckbox is a cWebCheckbox
+            Set psLabel to C_$DRExportGroupSections
+            Set piColumnSpan to 3
+            Set pbShowLabel to True
+            Set peLabelAlign to alignRight
+        End_Object
+
+        Object oExportPageSectionsCheckbox is a cWebCheckbox
+            Set psLabel to C_$DRExportPageSections
+            Set piColumnSpan to 3
+            Set pbShowLabel to True
+            Set peLabelAlign to alignRight
+            Set piColumnIndex to 3
+        End_Object
+
+        Object oExportReportSectionsCheckbox is a cWebCheckbox
+            Set psLabel to C_$DRExportReportSections
+            Set piColumnSpan to 3
+            Set pbShowLabel to True
+            Set peLabelAlign to alignRight
+            Set piColumnIndex to 6
+        End_Object
+
+        Object oExportDataOnlyCheckbox is a cWebCheckbox
+            Set psLabel to C_$DRExportDataOnly
+            Set piColumnSpan to 3
+            Set pbShowLabel to True
+            Set peLabelAlign to alignRight
+            Set pbServerOnChange to True
+            Set piColumnIndex to 9
+
+            Procedure OnChange String sNewValue String sOldValue
+                WebSet pbEnabled of oColumnWidthForm to (sNewValue = "0")
+            End_Procedure
+        End_Object
+
+        Object oColumnWidthForm is a cWebForm
+            Set psLabel to C_$DRExportColumnWidth
+            Set piColumnSpan to 3
+            Set peLabelAlign to alignRight
+            Set peDataType to typeNumber
+            Set piMaxLength to 4
+            Set piPrecision to 0
+        End_Object
+
+        Object oNewSheetsCombo is a cWebCombo
+            Set psLabel to C_$DRXLSNewSheets
+            Set peLabelAlign to alignRight
+            Set piColumnSpan to 5
+
+            Procedure OnFill
+                Forward Send OnFill
+
+                Send AddComboItem C_drNoSheets C_$DRXLSNoSheets
+                Send AddComboItem C_drSheetsPage C_$DRXLSSheetsPage
+            End_Procedure
+        End_Object
+
+        Object oExportButton is a cWebButton
+            Set psCaption to C_$DRExportReport
+            Set piColumnSpan to 2
+
+            Procedure OnClick
+                Send Ok
+            End_Procedure
+        End_Object
+    End_Object
+
+    Function ExportChoices Returns tWebNavigateData
+        String sExportFormat sValue
+        Boolean bAllPages
+        tWebNavigateData NavigateData
+
+        WebGet psValue of oOutputCombo to sExportFormat
+        Get NamedValueAdd NavigateData.NamedValues "ExportFormat" sExportFormat to NavigateData.NamedValues
+
+        Get GetChecked of oAllPagesCheckbox to bAllPages
+        Get NamedValueAdd NavigateData.NamedValues "AllPages" bAllPages to NavigateData.NamedValues
+
+        If (not (bAllPages)) Begin
+            WebGet psValue of oPageNumberForm to sValue
+            Get NamedValueAdd NavigateData.NamedValues "PageNumber" sValue to NavigateData.NamedValues
+        End
+
+        WebGet psValue of oDestinationCombo to sValue
+        Get NamedValueAdd NavigateData.NamedValues "Destination" sValue to NavigateData.NamedValues
+
+        Case Begin
+            Case (sExportFormat = "PDF")
+                WebGet psValue of oOwnerPasswordForm to sValue
+                Get NamedValueAdd NavigateData.NamedValues "OwnerPassword" sValue to NavigateData.NamedValues
+
+                WebGet psValue of oUserPasswordForm to sValue
+                Get NamedValueAdd NavigateData.NamedValues "UserPassword" sValue to NavigateData.NamedValues
+
+                WebGet psValue of oPageModeCombo to sValue
+                Get NamedValueAdd NavigateData.NamedValues "PageMode" sValue to NavigateData.NamedValues
+
+                WebGet psValue of oImageQualityCombo to sValue
+                Get NamedValueAdd NavigateData.NamedValues "ImageQuality" sValue to NavigateData.NamedValues
+
+                WebGet psValue of oPDFTypeCombo to sValue
+                Get NamedValueAdd NavigateData.NamedValues "PDFType" sValue to NavigateData.NamedValues
+                Case Break
+            Case (sExportFormat = "XLS")
+            Case (sExportFormat = "XLSX")
+                Get GetChecked of oExportDataOnlyCheckbox to sValue
+                Get NamedValueAdd NavigateData.NamedValues "DataOnly" sValue to NavigateData.NamedValues
+
+                WebGet psValue of oColumnWidthForm to sValue
+                Get NamedValueAdd NavigateData.NamedValues "ColumnWidth" sValue to NavigateData.NamedValues
+
+                WebGet psValue of oNewSheetsCombo to sValue
+                Get NamedValueAdd NavigateData.NamedValues "NewSheets" sValue to NavigateData.NamedValues
+
+                Get GetChecked of oExportGroupSectionsCheckbox to sValue
+                Get NamedValueAdd NavigateData.NamedValues "ExportGroupSections" sValue to NavigateData.NamedValues
+
+                Get GetChecked of oExportPageSectionsCheckbox to sValue
+                Get NamedValueAdd NavigateData.NamedValues "ExportPageSections" sValue to NavigateData.NamedValues
+
+                Get GetChecked of oExportReportSectionsCheckbox to sValue
+                Get NamedValueAdd NavigateData.NamedValues "ExportReportSections" sValue to NavigateData.NamedValues
+                Case Break
+            Case (sExportFormat = "CSV")
+                WebGet psValue of oFieldSeparatorForm to sValue
+                Get NamedValueAdd NavigateData.NamedValues "FieldSeparator" sValue to NavigateData.NamedValues
+
+                WebGet psValue of oFieldDelimiterForm to sValue
+                Get NamedValueAdd NavigateData.NamedValues "FieldDelimiter" sValue to NavigateData.NamedValues
+
+                Get GetChecked of oExportGroupSectionsCheckbox to sValue
+                Get NamedValueAdd NavigateData.NamedValues "ExportGroupSections" sValue to NavigateData.NamedValues
+
+                Get GetChecked of oExportPageSectionsCheckbox to sValue
+                Get NamedValueAdd NavigateData.NamedValues "ExportPageSections" sValue to NavigateData.NamedValues
+
+                Get GetChecked of oExportReportSectionsCheckbox to sValue
+                Get NamedValueAdd NavigateData.NamedValues "ExportReportSections" sValue to NavigateData.NamedValues
+                Case Break
+        Case End
+
+        Function_Return NavigateData
+    End_Function
+
+    Set pbServerOnShow to True
+
+    Procedure OnShow
+        WebSet pbEnabled of oPageNumberForm to False
+        Send SetChecked of oAllPagesCheckbox True
+        WebSet psValue of oOutputCombo to C_$DRPDF
+        WebSet psValue of oDestinationCombo to btNewWindow
+        Send SetChecked of oExportDataOnlyCheckbox False
+        WebSet pbEnabled of oColumnWidthForm to True
+        WebSet psValue of oPDFTypeCombo to C_drPDFNormal
+
+        WebSet psValue of oImageQualityCombo to C_drHigh
+        WebSet psValue of oPageModeCombo to C_drNormal
+        WebSet psValue of oFieldSeparatorForm to '"'
+        WebSet psValue of oFieldDelimiterForm to ','
+
+        Send SetChecked of oExportGroupSectionsCheckbox False
+        Send SetChecked of oExportPageSectionsCheckbox False
+        Send SetChecked of oExportReportSectionsCheckbox False
+
+        WebSet psValue of oNewSheetsCombo to C_drNoSheets
+
+        WebSet psValue of oColumnWidthForm to 30
+        Send SetChecked of oExportDataOnlyCheckbox False
+
+        Send OnChange of oOutputCombo C_$DRPDF ""
+    End_Procedure
+End_Object

@@ -1,0 +1,50 @@
+Use cWebModalDialog
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebIFrame.pkg
+
+Object oDRPDFModalDialog is a cWebModalDialog
+    Set psCaption to "Report Result"    
+    Set piMinWidth to 800
+    Set piMinHeight to 400
+    Set pbServerOnEscape to True
+    
+    Object oMainPanel is a cWebPanel
+        Set piColumnCount to 10
+
+        Object oReportOutput is a cWebIFrame
+            Set pbFillHeight to True
+            Set pbShowBorder to True
+        End_Object
+    End_Object 
+    
+    Object oBottomPanel is a cWebPanel
+        Set piColumnCount to 6
+        Set peRegion to prBottom
+
+        Object oCancelButton is a cWebButton
+            Set psCaption to C_$Close
+            Set piColumnSpan to 1
+            Set piColumnIndex to 5
+
+            Procedure OnClick
+                Send Cancel
+            End_Procedure
+        End_Object 
+    End_Object 
+
+    Procedure OnSubmit
+        Send Cancel
+    End_Procedure
+    
+    Procedure Close
+        Forward Send Cancel
+    End_Procedure    
+
+    Procedure ShowPDFModal Handle hoReturn Handle hoReport String sCaption
+        WebSet psCaption to sCaption
+        Set phoReportViewer of hoReport to oReportOutput
+        Send GenerateReport of hoReport
+        Send Popup hoReturn
+    End_Procedure
+End_Object

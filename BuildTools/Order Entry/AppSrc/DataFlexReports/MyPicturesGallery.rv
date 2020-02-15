@@ -1,0 +1,453 @@
+Use Windows.pkg
+Use DFRptVw.pkg
+Use File_Dlg.Pkg
+Use cTextEdit.pkg
+Use cImageList32.pkg
+
+Use cDRReport.pkg
+Use cDRPreview.pkg
+Use DRStatuspanel.dg
+Use DRExportOptions.dg
+
+Use DataFlexReports\FileDateTime.pkg
+Use DataFlexReports\WindowsFolders.pkg
+Use DataFlexReports\PathFindExtension.Pkg
+Use cSplitterContainer.pkg
+
+// This example report view shows the use of a treeview that gets populated with folders from your computer. If the
+// view was not started before the tree points to the my pictures folder. The last selected folder will be remembered.
+// Each folder is enumerated and the contents of image files gets placed in a RDS table. DataFlex Reports renders
+// the images.
+
+// Note: Do not use this component to view your RAW data images or folders with thousands of large images. You will
+// run into an out-of-memory error.
+
+Deferred_View Activate_oMyPicturesGalleryReportView for ;
+Object oMyPicturesGalleryReportView is a ReportView
+    Set Label to "My Pictures Gallery"
+    Set Border_Style to Border_Thick
+    Set Location to 6 6
+    Set Size to 395 711
+    Set piMinSize to 50 300
+
+    Object oSplitterContainer is a cSplitterContainer
+        Set piSplitterLocation to 123
+
+        Object oFoldersTreeSplitterContainerChild is a cSplitterContainerChild
+            Object oFoldersTreeContainer is a Container3d
+                Set Size to 395 125
+                Set peAnchors to anTopBottomLeft
+                Set Border_Style to Border_None
+        
+                Object oImageList is a cImageList32
+                    Procedure OnCreate
+                        Integer iImage
+        
+                        Get AddImage "Folder.Ico" to iImage
+                        Get AddImage "NetworkDrive.ico" to iImage
+                        Get AddImage "Harddisk.ico" to iImage
+                        Get AddImage "CDRom.ico" to iImage
+                    End_Procedure
+        
+                    Enum_List
+                        Define C_FOLDERBMP
+                        Define C_NETWORKDRIVEBMP
+                        Define C_HARRDISKBMP
+                        Define C_CDROMBMP
+                    End_Enum_List
+                End_Object
+        
+                Function CurrentFolder Returns String
+                    Handle hItem
+                    String sItemFullPath
+        
+                    Get CurrentTreeItem of oFoldersTreeView to hItem
+                    Get ItemFullPath of oFoldersTreeView hItem to sItemFullPath
+        
+                    Function_Return sItemFullPath
+                End_Function
+        
+                Object oFoldersTreeView is a TreeView
+                    Set Size to 385 113
+                    Set Location to 5 5
+                    Set TreeLinesState to False
+                    Set ImageListObject to oImageList
+                    Set peAnchors to anAll
+        
+                    Enum_List
+                        Define C_HARDDISKITEM for 1
+                        Define C_CDROMITEM
+                        Define C_NETWORKDRIVEITEM
+                        Define C_FOLDERITEM
+                    End_Enum_List
+        
+                    Function LocateTreeItem String[] ByRef sPaths Returns Handle
+                        Handle hItem
+                        Integer iPaths iPath
+        
+                        Get LocateRootItem (Lowercase (sPaths[0])) to hItem
+                        If (hItem > 0) Begin
+                            Move (SizeOfArray (sPaths)) to iPaths
+                            Decrement iPaths
+                            For iPath from 1 to iPaths
+                                Get LocateItem (Lowercase (sPaths[iPath])) hItem to hItem
+                                If (hItem = 0) Begin
+                                    Function_Return 0
+                                End
+                            Loop
+                        End
+        
+                        Function_Return hItem
+                    End_Function
+        
+                    Function LocateItem String sValue Handle hItem Returns Handle
+                        String sItemLabel
+        
+                        Get ChildItem hItem to hItem
+                        While (hItem > 0)
+                            Get ItemLabel hItem to sItemLabel
+                            If (Lowercase (sItemLabel) = sValue) Begin
+                                Send DoExpandItem hItem
+                                Function_Return hItem
+                            End
+                            Get NextSiblingItem hItem to hItem
+                        Loop
+        
+                        Function_Return 0
+                    End_Function
+        
+                    Function LocateRootItem String sDrive Returns Handle
+                        Handle hRootItem
+                        String sItemLabel
+        
+                        Get RootItem to hRootItem
+                        While (hRootItem > 0)
+                            Get ItemLabel hRootItem to sItemLabel
+                            If (Lowercase (sItemLabel) = sDrive) Begin
+                                Send DoExpandItem hRootItem
+                                Function_Return hRootItem
+                            End
+                            Get NextSiblingItem hRootItem to hRootItem
+                        Loop
+        
+                        Function_Return 0
+                    End_Function
+        
+                    Procedure LocateFolder String sCurrentFolder
+                        Integer iPos
+                        String sTreeLevelDelimeter
+                        String[] sPaths
+                        Handle hItem
+        
+                        Get TreeLevelDelimeter to sTreeLevelDelimeter
+                        While (sCurrentFolder <> "")
+                            Move (Pos (sTreeLevelDelimeter, sCurrentFolder)) to iPos
+                            If (iPos > 0) Begin
+                                Move (Left (sCurrentFolder, iPos - 1)) to sPaths[SizeOfArray (sPaths)]
+                                Move (Right (sCurrentFolder, Length (sCurrentFolder) - iPos)) to sCurrentFolder
+                            End
+                            Else Begin
+                                Move sCurrentFolder to sPaths[SizeOfArray (sPaths)]
+                                Move "" to sCurrentFolder
+                            End
+                        Loop
+        
+                        Get LocateTreeItem (&sPaths) to hItem
+                        If (hItem > 0) Begin
+                            Set CurrentTreeItem to hItem
+                        End
+                    End_Procedure
+        
+                    Object oFilesIdleManager is a cIdleHandler
+                        Set pbEnabled to False
+        
+                        Procedure OnIdle
+                            Handle hItem
+                            String sFolderPath
+                            Boolean bContainsFolders
+        
+                            Set pbEnabled to False
+        
+                            Delegate Get CurrentTreeItem to hItem
+        
+                            Get ItemFullPath hItem to sFolderPath
+                            Get ShowImagesReport of (oReportContainer (oReportSplitterContainerChild)) to bContainsFolders
+                            Set ItemChildCount hItem to bContainsFolders
+                        End_Procedure
+                    End_Object
+        
+                    Procedure OnCreateTree
+                        Handle hItem
+                        Integer iDrive iDriveStatus
+                        String sCurrentFolder
+        
+                        Get AddTreeItem (WindowsFolderPath (CSIDL_MYPICTURES, True)) 0 C_FOLDERITEM C_FOLDERBMP C_FOLDERBMP to hItem
+                        Set ItemChildCount hItem to 1
+        
+                        If (SysConf (SYSCONF_OS_MAJOR_REV) >= 6) Begin
+                            Get AddTreeItem (WindowsFolderPath (CSIDL_COMMON_PICTURES, True)) 0 C_FOLDERITEM C_FOLDERBMP C_FOLDERBMP to hItem
+                            Set ItemChildCount hItem to 1
+                        End
+        
+                        For iDrive from 1 to 26
+                            GetDskInfo iDrive iDriveStatus
+                            If (iDriveStatus > Drive_root_not_exist) Begin
+                                Case Begin
+                                    Case (iDriveStatus = Drive_fixed)
+                                        Get AddTreeItem (Character (iDrive + 64) + ":") 0 C_HARDDISKITEM C_HARRDISKBMP C_HARRDISKBMP to hItem
+                                        Case Break
+                                    Case (iDriveStatus = Drive_cdrom)
+                                        Get AddTreeItem (Character (iDrive + 64) + ":") 0 C_CDROMITEM C_CDROMBMP C_CDROMBMP to hItem
+                                        Case Break
+                                    Case (iDriveStatus = Drive_remote)
+                                        Get AddTreeItem (Character (iDrive + 64) + ":") 0 C_NETWORKDRIVEITEM C_NETWORKDRIVEBMP C_NETWORKDRIVEBMP to hItem
+                                        Case Break
+                                Case End
+                                Set ItemChildCount hItem to 1
+                            End
+                        Loop
+        
+                        Get ReadString of ghoApplication "Preferences" "CurrentFolder" "" to sCurrentFolder
+                        If (sCurrentFolder <> "") Begin
+                            Send LocateFolder sCurrentFolder
+                        End
+                    End_Procedure
+                    
+                    Procedure Deactivating
+                        String sCurrentFolder
+                        
+                        Get CurrentFolder to sCurrentFolder
+                        Send WriteString of ghoApplication "Preferences" "CurrentFolder" sCurrentFolder
+                        
+                        Forward Send Deactivating
+                    End_Procedure
+        
+                    Procedure OnItemExpanding Handle hItem
+                        String sFolderPath
+        
+                        Get ItemFullPath hItem to sFolderPath
+                        Send ReadFolderData (sFolderPath - "\*.*") hItem
+                    End_Procedure
+        
+                    Procedure OnItemCollapsed Handle hItem
+                        Handle hChildItem
+        
+                        Repeat
+                            Get ChildItem hItem to hChildItem
+                            If (hChildItem > 0) Begin
+                                Send DoDeleteItem hChildItem
+                            End
+                        Until (hChildItem = 0)
+                    End_Procedure
+        
+                    Procedure OnItemChanged Handle hItem Handle hItemOld
+                        Integer iItemData
+                        String sFolderPath
+                        Handle hoStatusBar
+        
+                        Get ItemData hItem to iItemData
+                        If (iItemData = C_FOLDERITEM) Begin
+                            Set pbEnabled of oFilesIdleManager to True
+                        End
+        
+                        Get StatusBar_Id to hoStatusBar
+                        If (hoStatusBar > 0) Begin
+                            Get ItemFullPath hItem to sFolderPath
+                            Set Status_Help of hoStatusBar to sFolderPath
+                        End
+                    End_Procedure
+        
+                    Procedure ReadFolderData String sPath Handle hRootItem
+                        tFileDateTime[] FileInfo
+                        Integer iElements iElement
+                        Handle hItem
+                        Boolean bContainsFolders
+        
+                        Move (FileDateTime (ToAnsi (sPath))) to FileInfo
+                        Move (SizeOfArray (FileInfo)) to iElements
+                        Decrement iElements
+                        For iElement from 0 to iElements
+                            If (IsFlagIn (FILE_ATTRIBUTE_DIRECTORY, FileInfo[iElement].iAttributes) and (not (IsFlagIn (FILE_ATTRIBUTE_HIDDEN, FileInfo[iElement].iAttributes)))) Begin
+                                If (FileInfo[iElement].sFileName <> "." and FileInfo[iElement].sFileName <> "..") Begin
+                                    Get AddTreeItem (ToOem (FileInfo[iElement].sFileName)) hRootItem C_FOLDERITEM 0 0 to hItem
+                                    Set ItemChildCount hItem to 1
+                                    Move True to bContainsFolders
+                                End
+                            End
+                        Loop
+        
+                        If (not (bContainsFolders)) Begin
+                            Set ItemChildCount hRootItem to False
+                        End
+                    End_Procedure
+                End_Object
+            End_Object
+        End_Object
+
+        Object oReportSplitterContainerChild is a cSplitterContainerChild
+            Object oReportContainer is a Container3d
+                Set Size to 380 575
+                Set Location to 5 5
+                Set peAnchors to anAll
+                Set Border_Style to Border_None
+                
+                Property Handle phoReport
+                Property Boolean pbContainsFolders
+                
+                Function ShowImagesReport Returns Boolean
+                    Boolean bContainsFolders
+                    
+                    Send RunReport of oImagesReport
+                    Get pbContainsFolders to bContainsFolders
+                    
+                    Function_Return bContainsFolders
+                End_Function
+        
+                Object oCommandBars is a cDRCommandBarSystem
+                    Object oDRToolBar is a cCJToolbar
+                        Set pbCloseable to False
+                        Set pbEnableDocking to False
+                        Set pbGripper to False
+                        Set peStretched to stStretch
+                        Set pbDockNextTo to False
+                
+                        Object oFirstPage is a cDRFirstPageMenuItem
+                        End_Object
+                
+                        Object oPreviousPage is a cDRPreviousPageMenuItem
+                        End_Object
+                
+                        Object oCurrentPage is a cDRCurrentPageMenuItem
+                            Set peControlType to xtpControlEdit
+                        End_Object
+                
+                        Object oNextPage is a cDRNextPageMenuItem
+                        End_Object
+                
+                        Object oLastPage is a cDRLastPageMenuItem
+                        End_Object
+                
+                        Object oRefresh is a cDRRefreshMenuItem
+                        End_Object
+                
+                        Object oPrint is a cDRPrintMenuItem
+                        End_Object
+                
+                        Object oZoom is a cDRZoomMenuItem
+                        End_Object
+                
+                        Object oExport is a cDRExportMenuItem
+                            Set phoExportOptionsDialog to (oDRExportOptionsDialog)
+                        End_Object
+                    End_Object
+        
+                    Procedure OnComResizeClient Integer iLeft Integer iTop Integer iRight Integer iBottom
+                        Forward Send OnComResizeClient iLeft iTop iRight iBottom
+                        
+                        Set GuiSize of oImagesReport to (iBottom - iTop) (iRight - iLeft)
+                        Set GuiLocation of oImagesReport to iTop iLeft
+                    End_Procedure
+                End_Object
+                
+                Object oImagesReport is a cDRReport
+                    Set Size to 371 583
+                    Set Location to 15 0
+                    Set pbShowStatusPanel to True
+                    Set phoStatusPanel to oDRStatusPanel
+                    Set psReportName to "My Pictures Gallery.dr"
+                    Set pePreviewStyle to C_DRPREVIEW_EMBEDDED
+                    Set phoReport to Self
+                    Set peAnchors to anAll
+                    
+                    Procedure OnZoomChanged Integer iFactor
+                        Set psText of (oZoom (oDRToolBar (oCommandBars))) to (String (iFactor) + "%")
+                    End_Procedure
+                    
+                    Procedure OnPageChanged Integer iPage
+                        Set psText of (oCurrentPage (oDRToolBar (oCommandBars))) to (String (iPage))
+                    End_Procedure
+        
+                    Function ReadImageToVariant String sFileName Variant ByRef vDataColumn Returns Boolean
+                        UChar[] ucFileData
+                        Address aFileData
+                        Integer iChannel iLength iResult iCurrentArgSize
+                        Boolean bOk
+                        
+                        Move (Seq_New_Channel ()) to iChannel
+                        If (iChannel >= DF_SEQ_CHANNEL_MIN and iChannel <= DF_SEQ_CHANNEL_MAX) Begin                
+                            Direct_Input channel iChannel ("BINARY:" - sFileName)
+                            If (not (SeqEof)) Begin
+                                Read_Block channel iChannel ucFileData -1
+                                Move (Base64Encode (AddressOf (ucFileData), SizeOfArray (ucFileData))) to aFileData
+                                Move (CStringLength (aFileData)) to iLength
+                                Move (ResizeArray (ucFileData, iLength, 0)) to ucFileData
+                                Move (Memcopy (AddressOf (ucFileData), aFileData, iLength)) to iResult
+                                Get_Argument_Size to iCurrentArgSize
+                                If (iLength > iCurrentArgSize) Begin
+                                    Increment iLength
+                                    Set_Argument_Size iLength
+                                End
+                                Move (UCharArrayToString (ucFileData, SizeOfArray (ucFileData))) to vDataColumn
+                                Move (Free (aFileData)) to iResult
+                                Move True to bOk
+                            End
+                            Close_Input channel iChannel
+                            Send Seq_Release_Channel iChannel
+                        End
+                        
+                        Function_Return bOk
+                    End_Function
+        
+                    Procedure OnInitializeReport
+                        String sFolder sExtensions sExtension sFileName
+                        Variant[][] vData
+                        Integer iRow iElements iElement iCurrentArgSize
+                        tFileDateTime[] FilesInfo
+                        Boolean bContainsFolders bSuccess
+                        
+                        Get_Argument_Size to iCurrentArgSize
+                        
+                        Move 0 to iRow
+                        
+                        Get CurrentFolder of oFoldersTreeView to sFolder
+                        Move (FileDateTime (ToAnsi (sFolder) - "\*.*")) to FilesInfo
+                        Move (SizeOfArray (FilesInfo)) to iElements
+                        If (iElements > 0) Begin
+                            Get ReadString of ghoApplication "Preferences" "GraphicExtensions" ".bmp;.gif;.jpg;.tif;.png;.rle" to sExtensions
+                            Move (Lowercase (sExtensions)) to sExtensions
+                            Decrement iElements
+                            For iElement from 0 to iElements
+                                If (not (IsFlagIn (FILE_ATTRIBUTE_DIRECTORY, FilesInfo[iElement].iAttributes))) Begin
+                                    If (not (IsFlagIn (FILE_ATTRIBUTE_HIDDEN, FilesInfo[iElement].iAttributes))) Begin
+                                        Get PathFindExtension FilesInfo[iElement].sFileName to sExtension
+                                        If (sExtensions contains Lowercase (sExtension)) Begin
+                                            Move (sFolder - '\' - FilesInfo[iElement].sFileName) to sFileName
+                                            Get ReadImageToVariant sFileName (&vData[iRow][1]) to bSuccess
+                                            If (bSuccess) Begin
+                                                Move FilesInfo[iElement].sFileName to vData[iRow][0]
+                                                Increment iRow
+                                            End
+                                        End
+                                    End
+                                End
+                                Else Begin
+                                    If (FilesInfo[iElement].sFileName <> "." and FilesInfo[iElement].sFileName <> "..") Begin
+                                        Move True to bContainsFolders
+                                    End
+                                End
+                            Loop
+                        End
+                        
+                        Set pbContainsFolders to bContainsFolders
+                        
+                        If (SizeOfArray (vData)) Begin
+                            Send TableData '' 0 vData
+                        End
+                        
+                        Set_Argument_Size iCurrentArgSize
+                    End_Procedure
+                End_Object
+            End_Object
+        End_Object
+    End_Object
+Cd_End_Object

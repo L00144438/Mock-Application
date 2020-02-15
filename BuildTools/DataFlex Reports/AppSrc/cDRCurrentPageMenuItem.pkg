@@ -1,0 +1,77 @@
+Use cDRMenuItem.pkg
+
+{ ClassLibrary = Windows }
+Class cDRCurrentPageMenuItem is a cDRMenuItem
+    Procedure OnCreateControl Handle hoEdit
+        Set ComText of hoEdit to 0
+        Set ComWidth of hoEdit to 50
+        Set ComShowSpinButtons of hoEdit to True
+        Set ComEditStyle of hoEdit to xtpEditStyleRight
+    End_Procedure
+
+    Procedure Set psText String sValue
+        Handle hoEdit
+        Boolean bCreated
+
+        Get IsComObjectCreated to bCreated
+        If (bCreated) Begin
+            Get CreateFirstProxyControl to hoEdit
+            If (hoEdit > 0) Begin
+                Set ComText of hoEdit to sValue
+                Send Destroy of hoEdit
+            End
+        End
+    End_Procedure
+    
+    Function ToInteger String sValue Returns Integer
+        Integer iLength iPos
+        String sChar sOutput
+        
+        Move (Length (sValue)) to iLength
+        For iPos from 1 to iLength
+            Move (Mid (sValue, 1, iPos)) to sChar
+            If ("0123456789" contains sChar) Begin
+                Move (sOutput + sChar) to sOutput
+            End
+        Loop
+        
+        Function_Return sOutput
+    End_Function
+
+    Function psText Returns String
+        Handle hoEdit
+        String sText
+        Boolean bCreated
+
+        Get IsComObjectCreated to bCreated
+        If (bCreated) Begin
+            Get CreateFirstProxyControl to hoEdit
+            If (hoEdit) Begin
+                Get ComText of hoEdit to sText
+                Get ToInteger sText to sText
+                Send Destroy of hoEdit
+            End
+        End
+        Function_Return sText
+    End_Function
+
+    Procedure OnExecute Variant vCommandBarControl
+        Integer iPage
+        Handle hoReport
+
+        Get psText to iPage
+        Get ReportObject to hoReport
+        Set piPreviewCurrentPage of hoReport to iPage
+    End_Procedure
+
+    Procedure OnChange
+        Integer iPage
+        Handle hoReport
+
+        Get psText to iPage
+        If (iPage >= 0) Begin
+            Get ReportObject to hoReport
+            Set piPreviewCurrentPage of hoReport to iPage
+        End
+    End_Procedure
+End_Class

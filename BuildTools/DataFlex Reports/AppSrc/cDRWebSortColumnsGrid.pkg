@@ -1,0 +1,144 @@
+Use cWebGrid.pkg
+
+{ ClassLibrary = WebApp }
+Class cDRWebSortColumnsGrid is a cWebGrid
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        Set pbDataAware to False
+        Set peDbGridType to gtManual
+        Set pbFillHeight to True
+        Set piSortColumn to -1
+        Set pbAllowAppendRow to False
+        Set pbAllowInsertRow to False
+        Set pbAllowDeleteRow to False
+        
+        { Description = 'Used to store the object id of the sort direction column' }
+        Property Handle phoSortDirectionColumn
+
+        { WebProperty = Server }
+        { Visibility = Private }
+        { Description = 'Web synchronized property to keep track of the sort column names and directions' }
+        Property String psWebSortColumnData
+        
+        { Visibility = Private }
+        { Description = 'Temporary storage of sort column data between OnProcessDataSet and OnManualLoadData' }
+        Property tWebRow[] pSortColumnData
+    End_Procedure
+        
+    { Visibility = Private }
+    Procedure OnLoad
+        Send GridRefresh
+    End_Procedure    
+
+    { Visibility = Private }
+    Procedure ProcessDataSet Integer eOperation
+        Integer iCurrentRowIndex
+        
+        WebGet piCurrentRowIndex to iCurrentRowIndex
+        If (iCurrentRowIndex = -1) Begin
+            Send MoveToRow 0
+        End
+        
+        Forward Send ProcessDataSet eOperation
+    End_Procedure
+
+    { Visibility = Private }
+    Procedure OnProcessDataSet tWebRow[] WebSortColumnRows Integer eOperation Integer iSelectedRowIndex
+        Integer iNewRow
+        
+        Move -1 to iNewRow
+        Case Begin
+            Case (eOperation = 1)
+                If (iSelectedRowIndex > 0) Begin
+                    Move (InsertInArray (WebSortColumnRows, (iSelectedRowIndex - 1), WebSortColumnRows[iSelectedRowIndex])) to WebSortColumnRows
+                    Move (RemoveFromArray (WebSortColumnRows, (iSelectedRowIndex + 1))) to WebSortColumnRows
+                    Move (iSelectedRowIndex - 1) to iNewRow
+                End
+                Case Break
+            Case (eOperation = 2)
+                If (iSelectedRowIndex < (SizeOfArray (WebSortColumnRows) - 1)) Begin
+                    Move (InsertInArray (WebSortColumnRows, iSelectedRowIndex, WebSortColumnRows[(iSelectedRowIndex + 1)])) to WebSortColumnRows
+                    Move (RemoveFromArray (WebSortColumnRows, (iSelectedRowIndex + 2))) to WebSortColumnRows
+                    Move (iSelectedRowIndex + 1) to iNewRow
+                End
+                Case Break
+            Case (eOperation = 3)
+                Move iSelectedRowIndex to iNewRow
+                Case Break
+            Case Else
+                // Should not happen
+                Case Break
+        Case End                        
+
+        If (iNewRow <> -1) Begin
+            Set pSortColumnData to WebSortColumnRows
+            Send GridRefresh
+        End
+    End_Procedure
+    
+    { Visibility = Private }
+    Procedure StoreSortColumnRows tWebRow[] SortColumnRows
+        String sWebSortColumnData
+        Integer iElements iElement iColumn
+        Handle hoSortDirectionColumn
+        
+        Get phoSortDirectionColumn to hoSortDirectionColumn
+        Get piColumnId of hoSortDirectionColumn to iColumn
+                
+        Move (SizeOfArray (SortColumnRows)) to iElements
+        Decrement iElements
+        For iElement from 0 to iElements
+            Move (sWebSortColumnData - SortColumnRows[iElement].sRowID - ',') to sWebSortColumnData
+            Move (sWebSortColumnData - SortColumnRows[iElement].aCells[iColumn].sValue) to sWebSortColumnData
+            If (iElement < iElements) Begin
+                Move (sWebSortColumnData - ',') to sWebSortColumnData
+            End
+        Loop
+        
+        WebSet psWebSortColumnData to sWebSortColumnData
+    End_Procedure
+    
+    { MethodType = Event }
+    Procedure OnSetSortColumns tWebRow[] ByRef WebSortColumnRows
+    End_Procedure
+
+    { Visibility = Private }
+    Procedure OnManualLoadData tWebRow[] ByRef WebSortColumnRows String ByRef sCurrentRowID                            
+        Forward Send OnManualLoadData (&WebSortColumnRows) (&sCurrentRowID)
+        
+        Get pSortColumnData to WebSortColumnRows
+        If (SizeOfArray (WebSortColumnRows) = 0) Begin
+            Send OnSetSortColumns (&WebSortColumnRows)
+        End
+        
+        Send StoreSortColumnRows WebSortColumnRows
+        Set pSortColumnData to (ResizeArray (WebSortColumnRows, 0))
+    End_Procedure
+    
+    { Description = 'Returns the sort columns and sort direction in a 2 dimensional array' }
+    Function SortColumnSet Returns String[][]
+        Integer iCommaPos iPos iElement
+        String sSortColumnData
+        String[][2] SortColumnData
+        
+        WebGet psWebSortColumnData to sSortColumnData
+        
+        Move 1 to iPos
+        Move (Pos (',', sSortColumnData)) to iCommaPos
+        While (iCommaPos > 0)
+            Move (Mid (sSortColumnData, iCommaPos - iPos, iPos)) to SortColumnData[iElement][0]
+            Move (iCommaPos + 1) to iPos
+            Move (Pos (',', sSortColumnData, iPos)) to iCommaPos
+            If (iCommaPos = 0) Begin
+                Move (Length (sSortColumnData) + 1) to iCommaPos
+            End
+            Move (Mid (sSortColumnData, iCommaPos - iPos, iPos)) to SortColumnData[iElement][1]
+            Move (iCommaPos + 1) to iPos
+            Move (Pos (',', sSortColumnData, iPos)) to iCommaPos
+            Increment iElement
+        Loop
+        
+        Function_Return SortColumnData
+    End_Function
+End_Class

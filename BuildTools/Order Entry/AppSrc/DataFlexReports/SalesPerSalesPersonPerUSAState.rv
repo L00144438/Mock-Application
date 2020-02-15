@@ -1,0 +1,242 @@
+Use Windows.pkg
+Use Dfrptvw.pkg
+
+Use cDRAPI.Pkg
+Use cDRReport.pkg
+Use cDRPreview.pkg
+
+Use cCustomerDataDictionary.dd
+
+// This example can use two different .DR reports. The report to use is controlled via the oWithPieChartCheckbox object.
+// Both reports are crosstab reports and have a lot in common but to show the chart the "with PieChart" report defines
+// a group section.
+
+// The comboforms control whether a total per row and/or total per column should be produced or not. If there is a total
+// the checkbox for grand totals can be selected.
+
+Deferred_View Activate_oSalesPerSalesPersonPerUSAStateReportView for ;
+Object oSalesPerSalesPersonPerUSAStateReportView is a ReportView
+    Set Size to 78 189
+    Set Label to "Sales per Salesperson per USA State"
+
+    Object oCustomer_DD is a cCustomerDataDictionary
+    End_Object
+
+    Object oReport is a cDRReport
+        Set psReportName to "Sales per Salesperson per USA state.dr"
+
+        Procedure OnInitializeReport
+            Set piReportLanguage '' to LANG_DEFAULT
+
+            Send SetFilters
+            Send SetParameters
+        End_Procedure
+
+        Procedure SetFilters
+            String sValue sReportId
+
+            Get ActiveCustomerStateSelection of oCustomerStatus to sValue
+            If (sValue <> "") Begin
+                Get psReportId to sReportId
+                Send AddFilter sReportId "{Customer.Status}" C_drEqual sValue
+            End
+        End_Procedure
+
+        Procedure SetParameters
+            String sReportId sValue
+            Integer iParameter
+
+            Get psReportId to sReportId
+
+            Get TotalRowSelection of oTotalsPerStateForm to sValue
+            Set psFunction sReportId "TotalsPerState" to ("Return" * sValue)
+
+            Get TotalColumnSelection of oTotalsPerSalesPersonForm to sValue
+            Set psFunction sReportId "TotalsPerSalesPerson" to ("Return" * sValue)
+
+            Get Checked_State of oGrandTotalParameterCheckbox to sValue
+            Get ParameterIdByName sReportId "GrandTotal" to iParameter
+            Set psParameterValue sReportId iParameter to sValue
+        End_Procedure
+    End_Object
+
+    Object oTotalsPerStateForm is a ComboForm
+        Set Size to 12 100
+        Set Location to 5 85
+        Set Label_Col_Offset to 80
+        Set peAnchors to anTopLeftRight
+        Set piMaxSize to 5 150
+        Set Entry_State to False
+        Set Combo_Sort_State to False
+        Set Label to "Totals / State"
+        Set psToolTip to 'Add a total value over all sales persons per state'
+
+        Procedure Combo_Fill_List
+            Send Combo_Add_Item "No Total Row"
+            Send Combo_Add_Item "Total Row on the top"
+            Send Combo_Add_Item "Total Row on the bottom"
+        End_Procedure
+
+        Function TotalRowSelection Returns String
+            String sValue
+            Integer iItem
+
+            Get Value to sValue
+            Get Combo_Item_Matching sValue to iItem
+            Case Begin
+                Case (iItem = 0)
+                    Move "drNoTotalRow" to sValue
+                    Case Break
+                Case (iItem = 1)
+                    Move "drTotalOnTop" to sValue
+                    Case Break
+                Case (iItem = 2)
+                    Move "drTotalOnBottom" to sValue
+                    Case Break
+            Case End
+
+            Function_Return sValue
+        End_Function
+
+        Procedure OnChange String sNewValue String sOldValue
+            Send UpdateGrandTotalState of oGrandTotalParameterCheckbox
+        End_Procedure
+    End_Object
+
+    Object oTotalsPerSalesPersonForm is a ComboForm
+        Set Size to 12 100
+        Set Location to 19 85
+        Set Label_Col_Offset to 80
+        Set peAnchors to anTopLeftRight
+        Set piMaxSize to 5 150
+        Set Entry_State to False
+        Set Combo_Sort_State to False
+        Set Label to "Totals / Sales Person"
+        Set psToolTip to 'Add a total value over all states per sales person'
+
+        Procedure Combo_Fill_List
+            Send Combo_Add_Item "No Total Column"
+            Send Combo_Add_Item "Total Column on the Left"
+            Send Combo_Add_Item "Total Column on the right"
+        End_Procedure
+
+        Function TotalColumnSelection Returns String
+            String sValue
+            Integer iItem
+
+            Get Value to sValue
+            Get Combo_Item_Matching sValue to iItem
+            Case Begin
+                Case (iItem = 0)
+                    Move "drNoTotalColumn" to sValue
+                    Case Break
+                Case (iItem = 1)
+                    Move "drTotalOnLeft" to sValue
+                    Case Break
+                Case (iItem = 2)
+                    Move "drTotalOnRight" to sValue
+                    Case Break
+            Case End
+
+            Function_Return sValue
+        End_Function
+
+        Procedure OnChange String sNewValue String sOldValue
+            Send UpdateGrandTotalState of oGrandTotalParameterCheckbox
+        End_Procedure
+    End_Object
+
+    Object oGrandTotalParameterCheckbox is a CheckBox
+        Set Size to 10 50
+        Set Location to 33 85
+        Set Label to 'Grand Total'
+        Set psToolTip to 'A Grand Total is not displayed when the row/column Totals are not set'
+
+        Procedure Activating
+            Forward Send Activating
+
+            Send UpdateGrandTotalState
+        End_Procedure
+
+        Procedure UpdateGrandTotalState
+            String sTotalRow sTotalColumn
+            Boolean bEnabled
+
+            Get TotalRowSelection of oTotalsPerStateForm to sTotalRow
+            Get TotalColumnSelection of oTotalsPerSalesPersonForm to sTotalColumn
+
+            Move (sTotalRow <> "drNoTotalRow" and sTotalColumn <> "dtNoTotalColumn") to bEnabled
+            Set Enabled_State to bEnabled
+            If (not (bEnabled)) Begin
+                Set Checked_State to False
+            End
+        End_Procedure
+    End_Object
+
+    Object oWithPieChartCheckbox is a CheckBox
+        Set Size to 10 50
+        Set Location to 45 85
+        Set Label to 'With Pie Chart'
+        Set psToolTip to 'Show a Pie Chart at the end of the Report'
+
+        Procedure OnChange
+            String sReportId
+            Boolean bChecked
+
+            Get psReportId of oReport to sReportId
+            If (sReportId <> '') Begin
+                Send ClosePreviewer of oReport
+                Send CloseReport of oReport sReportId
+            End
+
+            Get Checked_State to bChecked
+            If (bChecked) Begin
+                Set psReportName of oReport to "Sales per Salesperson per USA state with Pie Chart.dr"
+            End
+            Else Begin
+                Set psReportName of oReport to "Sales per Salesperson per USA state.dr"
+            End
+        End_Procedure
+    End_Object
+
+    Object oCustomerStatus is a ComboForm
+        Set Size to 12 26
+        Set Location to 60 85
+        Set Label_Col_Offset to 80
+        Set peAnchors to anTopLeftRight
+        Set piMaxSize to 12 50
+        Set Entry_State to False
+        Set Combo_Sort_State to False
+        Set Label to "Customer Active Status"
+        Set psToolTip to 'Only active customers'
+
+        Procedure Combo_Fill_List
+            Send Combo_Add_Item " "
+            Send Combo_Add_Item "Yes"
+            Send Combo_Add_Item "No"
+        End_Procedure
+
+        Function ActiveCustomerStateSelection Returns String
+            String sValue
+
+            Get Value to sValue
+            Move (Left (sValue, 1)) to sValue
+
+            Function_Return sValue
+        End_Function
+
+        Procedure OnChange String sNewValue String sOldValue
+            Send UpdateGrandTotalState of oGrandTotalParameterCheckbox
+        End_Procedure
+    End_Object
+
+    Object oRunReportButton is a Button
+        Set Location to 60 135
+        Set Label to "Run Report"
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Send RunReport of oReport
+        End_Procedure
+    End_Object
+Cd_End_Object

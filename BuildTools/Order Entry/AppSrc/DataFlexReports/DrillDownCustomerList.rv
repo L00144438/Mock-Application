@@ -1,0 +1,346 @@
+Use Windows.pkg
+Use DFRptVw.pkg
+Use File_Dlg.Pkg
+Use DfTabDlg.pkg
+Use cTextEdit.pkg
+Use cDRReport.pkg
+Use DRExportOptions.dg
+Use DRStatuspanel.dg
+Use cDRCommandBarSystem.pkg
+Use cDRMenuItem.pkg
+Use cDRZoomMenuItem.pkg
+Use cDRCurrentPageMenuItem.pkg
+Use cDRExportMenuItem.pkg
+Use cDRPrintMenuItem.pkg
+Use cDRFirstPageMenuItem.pkg
+Use cDRPreviousPageMenuItem.pkg
+Use cDRNextPageMenuItem.pkg
+Use cDRLastPageMenuItem.pkg
+Use cDRRefreshMenuItem.pkg
+Use DRStatuspanel.dg
+
+Use cCustomerDataDictionary.dd
+Use cCJCommandBarSystem.pkg
+
+// This is a complex example. When the view starts the customerlist produced by customer list.dr will be executed 
+// and the results are shown in a tab-page named "All". Since the "DrillDown" parameter of the report is set to 1 
+// the report shows the customer number, city and state values underlined to indicate the user can click on these 
+// values. When the user clicks on "customer number" a new tab-page is opened and a report named "customer orders.dr" 
+// will be executed filtering on the the clicked user. When the user clicks on "city" or "state" a new tab-page is 
+// opened filtering on the state or city value.
+
+// The example also shows how one can create and remove tab-pages on the fly and how one can create a floating
+// menu on the tab button of the tab-page, enabling the option when it is not tab 1.
+
+// The reports used are:
+// Customer List.dr
+// Customer Orders.dr
+
+// Customer list.dr can be used for this drilldown example but also for the list of customers view. The results of 
+// the report are different based on the parameter drilldown. There are different columns shown and the drill down 
+// usage hides the customer without orders
+
+Deferred_View Activate_oCustomerListDrillDownReportView for ;
+Object oCustomerListDrillDownReportView is a ReportView
+    Set Label to "CustomerList (Drill-Down)"
+    Set Output_Device_Mode to PRINT_TO_WINDOW
+    Set Border_Style to Border_Thick
+
+    { Description = "Will be used to store the object id of the cDRReport" }
+    { InitialValue = 0 }
+    Property Handle phoReport
+
+    Object oDRTabDialog is a dbTabDialog
+        Set Location to 5 5
+        Set Rotate_Mode to RM_Rotate
+        Set peAnchors to anAll
+
+        Object oTabFloatingMenu is a cCJContextMenu
+            { DesignTime = False InitialValue = 0 }
+            Property Integer piTab
+            
+            Object oCloseMenuItem is a cCJMenuItem
+                Set psCaption to "Close"
+                Set psTooltip to "Close"
+                Set psImage to "ActionDelete.ico"
+                
+                Procedure OnExecute Variant vCommandBarControl
+                    Integer iTab
+                    
+                    Get piTab to iTab
+                    Send Delete_Tab_Item iTab
+                End_Procedure
+                
+                // Do not allow the first tab page to be closed
+                Function IsEnabled Returns Boolean
+                    Integer iTab
+                    
+                    Get piTab to iTab
+                    
+                    Function_Return (iTab > 0) 
+                End_Function
+            End_Object
+        End_Object
+        
+        Procedure Mouse_Down2 Integer iWindowNumber Integer iPosition
+            If (iWindowNumber > 0) Begin
+                Set piTab of oTabFloatingMenu to (iWindowNumber - 1)
+                Send Popup of oTabFloatingMenu
+            End
+        End_Procedure
+
+        Object oResultsTabPage is a dbTabPage
+            Set Label to "All"
+
+            Object oCommandBars is a cDRCommandBarSystem
+                Object oDRToolBar is a cCJToolbar
+                    Set pbCloseable to False
+                    Set pbEnableDocking to False
+                    Set pbGripper to False
+                    Set peStretched to stStretch
+                    Set pbDockNextTo to False
+
+                    Object oFirstPage is a cDRFirstPageMenuItem
+                    End_Object
+
+                    Object oPreviousPage is a cDRPreviousPageMenuItem
+                    End_Object
+
+                    Object oCurrentPage is a cDRCurrentPageMenuItem
+                        Set peControlType to xtpControlEdit
+                    End_Object
+
+                    Object oNextPage is a cDRNextPageMenuItem
+                    End_Object
+
+                    Object oLastPage is a cDRLastPageMenuItem
+                    End_Object
+
+                    Object oRefresh is a cDRRefreshMenuItem
+                    End_Object
+
+                    Object oPrint is a cDRPrintMenuItem
+                        Set pbVisible to False
+                    End_Object
+
+                    Object oZoom is a cDRZoomMenuItem
+                    End_Object
+
+                    Object oExport is a cDRExportMenuItem
+                        Set phoExportOptionsDialog to (oDRExportOptionsDialog)
+                        Set pbVisible to False
+                    End_Object
+
+                    Object oHideCustomersWithoutOrdersMenuItem is a cCJMenuItem
+                        Set peControlType to xtpControlCheckBox
+                        Set psCaption to "Hide Customers"
+                        Set psToolTip to "Hide Customers Without Orders"
+                        
+                        // Is sent from the report to set the checkbox to the right initial value
+                        Procedure InitControl Boolean bHide
+                            Handle hoCheckbox
+                            
+                            Get CreateFirstProxyControl to hoCheckbox
+                            If (hoCheckbox <> 0) Begin
+                                Set ComChecked of hoCheckbox to bHide
+                                Send Destroy of hoCheckbox
+                            End
+                        End_Procedure
+
+                        // When the user clicks the checkbox:
+                        // - Set the checked state to the opposite of what it is
+                        // - Pass this value to the report and refresh it to represent the change
+                        Procedure OnExecute Variant vCommandBarControl
+                            Handle hMessage hoClient hoCheckbox
+                            Boolean bChecked
+
+                            Get CreateProxyControl vCommandBarControl to hoCheckbox
+                            Get ComChecked of hoCheckbox to bChecked
+                            Move (not (bChecked)) to bChecked
+                            Set ComChecked of hoCheckbox to bChecked
+                            Send ChangeCustomerHiding of oReport bChecked
+                            Send Destroy of hoCheckbox
+                        End_Procedure
+                    End_Object
+                End_Object
+            End_Object
+
+            Object oReport is a cDRReport
+                Set pePreviewStyle to C_DRPREVIEW_EMBEDDED
+                Set phoReport to Self
+                Set Location to 21 5
+                Set Size to 250 485
+                Set peAnchors to anAll
+                Set pbShowStatusPanel to True
+                Set phoStatusPanel to oDRStatusPanel
+                Set psReportName to "Customer List.DR"
+
+                Procedure OnPageChanged Integer iPage
+                    Set psText of (oCurrentPage (oDRToolBar (oCommandBars))) to (String (iPage))
+                End_Procedure
+
+                Procedure OnZoomChanged Integer iFactor
+                    Set psText of (oZoom (oDRToolBar (oCommandBars))) to (String (iFactor) + "%")
+                End_Procedure
+
+                // Run the report immediately after the control has been created
+                Procedure OnCreate
+                    Forward Send OnCreate
+
+                    Send RunReport
+                End_Procedure
+                
+                // Will be send by the checkbox in the tool-bar to hide or un-hide the customers
+                Procedure ChangeCustomerHiding Boolean bHide
+                    String sReportId
+                    Integer iParameter
+                    
+                    Get psReportId to sReportId
+                    Get ParameterIdByName sReportId "HideCustomersWithoutOrders" to iParameter
+                    Set psParameterValue sReportId iParameter to bHide
+                    
+                    Send RefreshReport
+                End_Procedure
+
+                Procedure OnInitializeReport
+                    String sReportId
+                    Integer iParameter
+                    Boolean bHide
+
+                    Forward Send OnInitializeReport
+
+                    Get psReportId to sReportId
+                    
+                    // Setup this report for a drilldown operation
+                    Get ParameterIdByName sReportId "DrillDown" to iParameter
+                    Set psParameterValue sReportId iParameter to True
+
+                    // Make sure the report does initially does not show customers without orders.
+                    // Show the choice in the toolbar
+                    Get ParameterIdByName sReportId "HideCustomersWithoutOrders" to iParameter
+                    Set psParameterValue sReportId iParameter to True
+                    Get psParameterValue sReportId iParameter to bHide
+                    Send InitControl of (oHideCustomersWithoutOrdersMenuItem (oDRToolBar (oCommandBars))) bHide
+                End_Procedure
+
+                Procedure OnReportPreviewClick C_DRHitTests iPos Integer iSectionId String sObject String sValue
+                    Forward Send OnReportPreviewClick iPos iSectionId sObject sValue
+
+                    Case Begin
+                        Case (iSectionId = 31)
+                            Case Begin
+                                Case (sObject = "Customer.Customer_Number")
+                                    Send DrillDownToCustomer sValue
+                                    Case Break
+                                Case (sObject = "Customer.City")
+                                    Send CreateNewCustomerReport sObject sValue
+                                    Case Break
+                                Case (sObject = "Customer.State")
+                                    Send CreateNewCustomerReport sObject sValue
+                                    Case Break
+                            Case End
+                            Case Break
+                    Case End
+                End_Procedure
+            End_Object
+        End_Object
+
+        Procedure CloseTabPage
+            Integer iTab
+
+            Get Current_Tab to iTab
+            If (iTab > 0) Begin
+                Send Delete_Tab_Item iTab
+            End
+        End_Procedure
+
+        Function AppendReportTabPage String sTabLabel Handle ByRef hoReport Returns Handle
+            Handle hoTabPage hoButton
+            Integer iCurrentTab iTabPageSize iTabItem iTabPageWidth iTabPageHeight
+
+            Get Current_Tab to iCurrentTab
+            Get Tab_Page_Id iCurrentTab to hoTabPage
+            Get Size of hoTabPage to iTabPageSize
+            Move (Hi (iTabPageSize)) to iTabPageHeight
+            Move (Low (iTabPageSize)) to iTabPageWidth
+
+            Get Create (RefClass (dbTabPage)) to hoTabPage
+            Set Label of hoTabPage to sTabLabel
+            Send Auto_Page hoTabPage
+
+            Get Create of hoTabPage (RefClass (cDRReport)) to hoReport
+            Set peAnchors of hoReport to anAll
+            Set pePreviewStyle of hoReport to C_DRPREVIEW_EMBEDDED
+
+            Get Create of hoTabPage (RefClass (Button)) to hoButton
+            Set peAnchors of hoButton to anBottomRight
+            Set Label of hoButton to "Close"
+            Set Message of hoButton 0 to (RefProc (CloseTabPage))
+
+            Set Location of hoReport to 5 5
+            Set Size of hoReport to (iTabPageHeight - 30) (iTabPageWidth - 10)
+            Set Location of hoButton to (iTabPageHeight - 20) (iTabPageWidth - 55)
+
+            Get Tab_Button_Item of hoTabPage to iTabItem
+            Send Request_Switch_To_Tab iTabItem 3
+
+            Move hoTabPage to Self
+            On_Key Key_Escape Send CloseTabPage
+
+            Function_Return hoTabPage
+        End_Function
+
+        Procedure CreateNewCustomerReport String sObject String sValue
+            Handle hoTabPage hoReport
+            String sReportId
+            Integer iParameter
+
+            Get AppendReportTabPage sValue (&hoReport) to hoTabPage
+            Set Tab_ToolTip_Value of hoTabPage to ("Customers in" * sValue)
+
+            // Load and show the report
+            Set psReportName of hoReport to "Customer List.DR"
+            Get OpenReport of hoReport to sReportId
+            If (sReportId <> "") Begin
+                Set piReportLanguage of hoReport '' to LANG_NEUTRAL
+                Get ParameterIdByName of hoReport sReportId "DrillDown" to iParameter
+                Set psParameterValue of hoReport sReportId iParameter to False
+                Get ParameterIdByName of hoReport sReportId "HideCustomersWithoutOrders" to iParameter
+                Set psParameterValue of hoReport sReportId iParameter to 1
+                Send AddFilter of hoReport sReportId ("{" - sObject - '}') C_DREqual sValue
+                Send DisplayReport of hoReport
+            End
+        End_Procedure
+
+        Procedure DrillDownToCustomer Integer iCustomerNumber
+            Handle hoTabPage hoReport
+            String sReportId sName
+            Integer iParameter
+
+            Clear Customer
+            Move iCustomerNumber to Customer.Customer_Number
+            Find Eq Customer by 1
+            Move (Trim (Customer.Name)) to sName
+
+            Get AppendReportTabPage (sName * "Orders") (&hoReport) to hoTabPage
+            Set Tab_ToolTip_Value of hoTabPage to ("Orders for:" * sName)
+
+            // Load and show the report
+            Set psReportName of hoReport to "Customer Orders.DR"
+            Get OpenReport of hoReport to sReportId
+            If (sReportId <> "") Begin
+                Set piReportLanguage of hoReport '' to LANG_NEUTRAL
+                Get ParameterIdByName of hoReport sReportId "CustomerName" to iParameter
+                Set psParameterValue of hoReport sReportId iParameter to sName
+                Send AddFilter of hoReport sReportId "{Orderheader.Customer_Number}" C_DREqual iCustomerNumber
+                Send DisplayReport of hoReport
+            End
+        End_Procedure
+
+        Set Size to 290 500
+    End_Object
+
+    Set Location to 6 6
+    Set Size to 300 511
+    Set piMinSize to 300 350
+Cd_End_Object

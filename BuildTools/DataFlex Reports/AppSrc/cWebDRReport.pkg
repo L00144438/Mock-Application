@@ -1,0 +1,7 @@
+Use cDRReport.pkg
+
+{ Obsolete = True }
+Class cWebDRReport is a cDRReport
+    // Introduced in version 5.0 but code moved to cDRReport in version 6.0
+    #REM 'Obsolete class used'
+End_Class

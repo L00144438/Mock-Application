@@ -1,0 +1,76 @@
+Use cWebModalDialog.pkg
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebForm.pkg
+
+Use DRLanguage.Inc
+
+Object oFunctionErrorDialog is a cWebModalDialog
+    Set psCaption to C_$DRErrorInFunction
+    Set piMinWidth to 500
+    Set piMinHeight to 150
+    Set pbServerOnSubmit to True
+    
+    Object oMainPanel is a cWebPanel
+        Set piColumnCount to 12
+
+        Object oFunctionNameBox is a cWebForm
+            Set piColumnSpan to 0
+            Set psLabel to C_$DRFunctionName
+            Set pbEnabled to False
+        End_Object
+
+        Object oReportNameBox is a cWebForm
+            Set piColumnSpan to 0
+            Set psLabel to C_$DRReportName
+            Set pbEnabled to False
+        End_Object
+
+        Object oFunctionIDBox is a cWebForm
+            Set piColumnSpan to 0
+            Set psLabel to C_$DRFunctionIdentifier
+            Set pbEnabled to False
+        End_Object
+    End_Object 
+    
+    Object oBottomPanel is a cWebPanel
+        Set piColumnCount to 6
+        Set peRegion to prBottom
+
+        Object oCloseButton is a cWebButton
+            Set psCaption to C_$Close
+            Set piColumnSpan to 1
+            Set piColumnIndex to 5
+
+            Procedure OnClick
+                Send Cancel
+            End_Procedure
+        End_Object 
+    End_Object 
+
+    Procedure OnSubmit
+        Send Cancel
+    End_Procedure
+    
+    Procedure Cancel
+        Forward Send Cancel
+    End_Procedure
+    
+    Procedure CheckFunctionErrorAndDisplayInfo Handle hoReturnObject Handle hoReport
+        tDRFunctionErrorInfo FunctionErrorInfo
+        String sValue
+        
+        Get pFunctionErrorInfo of hoReport to FunctionErrorInfo
+        If (FunctionErrorInfo.sReportId <> "") Begin
+            Get ComReportName of hoReport FunctionErrorInfo.sReportId to sValue
+            WebSet psValue of oReportNameBox to sValue
+            Get psFunctionName of hoReport FunctionErrorInfo.sReportId FunctionErrorInfo.iFunctionId to sValue
+            If (sValue = '') Begin
+                Move C_$DRBuiltInFunction to sValue
+            End
+            WebSet psValue of oFunctionNameBox to sValue
+            WebSet psValue of oFunctionIDBox to (SFormat ("%1.{%2}", FunctionErrorInfo.sReportId, FunctionErrorInfo.iFunctionId))
+            Send Popup hoReturnObject
+        End
+    End_Procedure
+End_Object

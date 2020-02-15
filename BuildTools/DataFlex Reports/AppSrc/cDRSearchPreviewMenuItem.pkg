@@ -1,0 +1,98 @@
+Use cDRMenuItem.pkg
+Use DRLanguage.Inc
+
+Class cDRSearchPreviewMenuItem is a cDRMenuItem
+    Procedure Construct_Object
+        Forward Send Construct_Object
+
+        Set peControlType to xtpControlEdit
+        Set peControlStyle to xtpButtonCaption
+        Set psCaption to C_$DRSearchInPreview
+        Set psDescription to C_$DRSearchInPreviewDescr
+        Set psTooltip to C_$DRSearchInPreviewTooltip
+        Set pbControlBeginGroup to True
+
+        Property Boolean pbDown True
+        Property Boolean pbWholeWord False
+        Property Boolean pbMatchCase False
+
+        { Description = "Specifies the name of the image to be used for the image displayed on the right hand side of the control" }
+        Property String psBuddyButtonImage "DRPreviewFind.ico"
+        { Description = "Specifies the event (method) that needs to be called when the button gets clicked" }
+        Property Handle phmBuddyButtonClicked (RefProc (OnExecute))
+
+        Set pbActiveUpdate to True
+    End_Procedure
+
+    Procedure OnCreateControl Handle hoEdit
+        Handle hoCommandBars
+        String sImage
+        Integer iTextSize iImageId
+
+        Set ComText of hoEdit to ''
+        Get Text_Extent C_$DRSearchHintText to iTextSize
+        Get DialogToGui (hi (iTextSize)) (Low (iTextSize)) to iTextSize
+        Set ComWidth of hoEdit to (Low (iTextSize) max 250)
+        Set ComEditStyle of hoEdit to xtpEditStyleLeft
+        Set ComEditHint of hoEdit to C_$DRSearchHintText
+
+        Get psBuddyButtonImage to sImage
+        If (sImage <> "") Begin
+            Get CommandBarSystemObject to hoCommandBars
+            Get AddImage of hoCommandBars sImage 0 xtpImageNormal to iImageId
+            Set ComBuddyButtonId of hoEdit to iImageId
+        End
+    End_Procedure
+
+    Function psText Returns String
+        Handle hoEdit
+        String sText
+        Boolean bCreated
+
+        Get IsComObjectCreated to bCreated
+        If (bCreated) Begin
+            Get CreateFirstProxyControl to hoEdit
+            If (hoEdit) Begin
+                Get ComText of hoEdit to sText
+                Send Destroy of hoEdit
+            End
+        End
+
+        Function_Return sText
+    End_Function
+
+    Procedure BuddyButtonClicked Variant vControl
+        Handle hmBuddyButtonClicked
+
+        Get phmBuddyButtonClicked to hmBuddyButtonClicked
+        If (hmBuddyButtonClicked <> 0) Begin
+            Send hmBuddyButtonClicked vControl
+        End
+    End_Procedure
+
+    Procedure OnExecute Variant vCommandBarControl
+        String sSearchValue
+        Handle hoReport
+        Boolean bDown bWholeWord bMatchCase bFound
+
+        Get psText to sSearchValue
+        Get ReportObject to hoReport
+
+        Get pbDown to bDown
+        Get pbWholeWord to bWholeWord
+        Get pbMatchCase to bMatchCase
+
+        Get PreviewFind of hoReport sSearchValue bDown bWholeWord bMatchCase to bFound
+        If (bFound) Begin
+            Send PreviewPaint of hoReport
+        End
+        Else Begin
+            Send PreviewFindReset of hoReport
+            Send PreviewFirstPage of hoReport
+            Get PreviewFind of hoReport sSearchValue bDown bWholeWord bMatchCase to bFound
+            If (bFound) Begin
+                Send PreviewPaint of hoReport
+            End
+        End
+    End_Procedure
+End_Class

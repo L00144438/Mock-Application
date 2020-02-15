@@ -1,0 +1,77 @@
+Use Windows.pkg
+Use cDR.h.pkg
+Use DRLanguage.Inc
+
+Object oFunctionErrorDialog is a ModalPanel
+    Set Size to 68 309
+    Set Label to C_$DRErrorInFunction
+    Set piMinSize to 68 211
+    Set Locate_Mode to CENTER_ON_PARENT
+    Set Location to 2 2
+    Set Border_Style to Border_Dialog
+    Set Icon to "dr.Ico"
+
+    Procedure Page Integer iPageObject
+        Forward Send Page iPageObject
+        If (iPageObject <> 0) Begin
+            Set Icon to "dr.ico"
+        End
+    End_Procedure
+    
+    Object oFunctionNameBox is a Form
+        Set Size to 13 249
+        Set Location to 5 55
+        Set Label to C_$DRFunctionName
+        Set Label_Col_Offset to 2
+        Set Label_Justification_Mode to JMode_Right
+        Set Enabled_State to False
+    End_Object
+
+    Object oReportNameBox is a Form
+        Set Size to 13 249
+        Set Location to 20 55
+        Set Label to C_$DRReportName
+        Set Label_Col_Offset to 2
+        Set Label_Justification_Mode to JMode_Right
+        Set Enabled_State to False
+    End_Object
+
+    Object oFunctionIDBox is a Form
+        Set Size to 13 249
+        Set Location to 35 55
+        Set Label to C_$DRFunctionIdentifier
+        Set Label_Col_Offset to 2
+        Set Label_Justification_Mode to JMode_Right
+        Set Enabled_State to False
+    End_Object
+
+    Object oCloseButton is a Button
+        Set Label to C_$Close
+        Set Location to 50 255
+        Set psToolTip to C_$DRCopyAndClose
+
+        Procedure OnClick
+            Send Select_All of oFunctionIDBox
+            Send Copy of oFunctionIDBox
+            Send Close_Panel
+        End_Procedure
+    End_Object
+    
+    Procedure CheckFunctionErrorAndDisplayInfo Handle hoReport
+        tDRFunctionErrorInfo FunctionErrorInfo
+        String sValue
+        
+        Get pFunctionErrorInfo of hoReport to FunctionErrorInfo
+        If (FunctionErrorInfo.sReportId <> "") Begin
+            Get ComReportName of hoReport FunctionErrorInfo.sReportId to sValue
+            Set Value of oReportNameBox to sValue
+            Get psFunctionName of hoReport FunctionErrorInfo.sReportId FunctionErrorInfo.iFunctionId to sValue
+            If (sValue = '') Begin
+                Move C_$DRBuiltInFunction to sValue
+            End
+            Set Value of oFunctionNameBox to sValue
+            Set Value of oFunctionIDBox to (SFormat ("%1{%2}", FunctionErrorInfo.sReportId, FunctionErrorInfo.iFunctionId))
+            Send Popup
+        End
+    End_Procedure
+End_Object

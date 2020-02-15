@@ -1,0 +1,445 @@
+Use Windows.pkg
+Use DFRptVw.pkg
+Use File_Dlg.Pkg
+Use cTextEdit.pkg
+Use cDRReport.pkg
+Use cDRPreview.pkg
+Use DRStatuspanel.dg
+
+Use cVendorDataDictionary.dd
+Use cCustomerDataDictionary.dd
+Use cSalesPersonDataDictionary.dd
+Use cOrderHeaderDataDictionary.dd
+Use dfTreeVw.pkg
+
+// This example runs a report with five RDS based sub-reports. The integration code shows how to fill the RDS tables in 5
+// different sub-reports, how to query the names of the sub-reports, the record sort field and how to change this on the
+// dynamically. For this the print button does not do a runreport but only an output report as runreport would close the
+// report and thus dropping the optional changed sort order in one or more of the sub-reports.
+
+Deferred_View Activate_oDataOverviewReportView for ;
+Object oDataOverviewReportView is a ReportView
+    Object oSalesPerson_DD is a cSalesPersonDataDictionary
+    End_Object
+
+    Object oCustomer_DD is a cCustomerDataDictionary
+    End_Object
+
+    Object oOrderHeader_DD is a cOrderHeaderDataDictionary
+        Set DDO_Server to oSalesPerson_DD
+        Set DDO_Server to oCustomer_DD
+    End_Object
+
+    Object oVendor_DD is a cVendorDataDictionary
+    End_Object
+
+    Set Main_DD to oVendor_DD
+    Set Server to oVendor_DD
+
+    Set Label to "Data Overview"
+    Set Border_Style to Border_Thick
+
+    Object oReport is a cDRReport
+        Set pbShowStatusPanel to True
+        Set phoStatusPanel to oDRStatusPanel
+        Set psReportName to "Data Overview.dr"
+
+        Procedure OnCreate
+            Forward Send OnCreate
+
+            Set piReportLanguage '' to LANG_DEFAULT
+        End_Procedure
+
+        Procedure OnInitializeReport
+            String sReportId
+            Integer eOutputDeviceMode
+
+            Forward Send OnInitializeReport
+
+            // Convert from the ReportView Output_Device_Mode to peOutputDestination
+            Get Output_Device_Mode to eOutputDeviceMode
+            Set peOutputDestination to eOutputDeviceMode
+
+            Get psReportId to sReportId
+            Send LoadRDSData sReportId -1 0
+        End_Procedure
+
+        // This method will be called once for the main report and once per sub-report at each level of sub-reports.
+        // The iSibling parameter contains the N-th sub-report at the same level. If the value equals to -1 it means the main report.
+        // The iLevel parameter contains the depth of sub-report nestings. For a sub-report
+        // in a main report the value will be 1 and a sub-report of a sub-report makes it 2.
+        Procedure LoadRDSData String sReportId Integer iSibling Integer iLevel
+            Variant[][] vData
+            Integer iElements iElement iSubReports iSubReport
+            tDRTableName[] ReportTableNames
+            String sSubReportId
+
+            Get RDSTableNames sReportId to ReportTableNames
+            Move (SizeOfArray (ReportTableNames)) to iElements
+            If (iElements > 0) Begin
+                Decrement iElements
+                For iElement from 0 to iElements
+                    Get AddRDSData ReportTableNames[iElement].sTableName iSibling iLevel to vData
+                    Send TableData sReportId ReportTableNames[iElement].iTable vData
+                Loop
+            End
+
+            Get SubReportCount sReportId to iSubReports
+            If (iSubReports > 0) Begin
+                Decrement iSubReports
+                For iSubReport from 0 to iSubReports
+                    Get SubReportId sReportId iSubReport to sSubReportId
+                    Send LoadRDSData sSubReportId iSubReport (iLevel + 1)
+                Loop
+            End
+        End_Procedure
+
+        // Note: The Runtime DataSource row will be rejected if:
+        // 1: The number of elements in the 2nd dimension does not match with the row layout
+        // 2: The data-type of any element in the 2nd dimension does not match, cannot be
+        //    converted to the data-type defined in the row layout. For example: A zero date
+        Function AddRDSData String sTableName Integer iSibling Integer iLevel Returns Variant[][]
+            Variant[][] vData
+            Variant[][] vValidationTableData
+            Integer iRow iElements iElement
+            Handle hoValidationTable
+
+            Move 0 to iRow
+
+            Case Begin
+                Case (iSibling = 0 and iLevel = 1 and sTableName = "Address")
+                    // First add the vendors
+                    Send Clear of oVendor_DD
+                    Send Request_Read of oVendor_DD FIRST_RECORD Vendor.File_Number 1
+                    While (Found)
+                        Move (Trim (Vendor.Name)) to vData[iRow][0] // Name: Name, Length: 100, Datatype: String
+                        Move (Trim (Vendor.Address)) to vData[iRow][1] // Name: Address, Length: 100, Datatype: String
+                        Move (Trim (Vendor.Zip) * Trim (Vendor.City)) to vData[iRow][2] // Name: ZipCode_City, Length: 100, Datatype: String
+                        Move (Trim (Vendor.State)) to vData[iRow][3] // Name: State, Length: 100, Datatype: String
+                        Move (Trim (Vendor.Phone_Number)) to vData[iRow][4] // Name: Phone, Length: 100, Datatype: String
+                        Move 'V' to vData[iRow][5] // Name: Type, Length: 1, Datatype: String
+                        Increment iRow
+
+                        Send Locate_Next of oVendor_DD
+                    Loop
+                    // Then add the customers
+                    Send Clear of oCustomer_DD
+                    Send Request_Read of oCustomer_DD FIRST_RECORD Customer.File_Number 1
+                    While (Found)
+                        Move (Trim (Customer.Name)) to vData[iRow][0] // Name: Name, Length: 100, Datatype: String
+                        Move (Trim (Customer.Address)) to vData[iRow][1] // Name: Address, Length: 100, Datatype: String
+                        Move (Trim (Customer.Zip) * Trim (Customer.City)) to vData[iRow][2] // Name: ZipCode_City, Length: 100, Datatype: String
+                        Move (Trim (Customer.State)) to vData[iRow][3] // Name: State, Length: 100, Datatype: String
+                        Move (Trim (Customer.Phone_Number)) to vData[iRow][4] // Name: Phone, Length: 100, Datatype: String
+                        Move 'C' to vData[iRow][5] // Name: Type, Length: 1, Datatype: String
+                        Increment iRow
+
+                        Send Locate_Next of oCustomer_DD
+                    Loop
+                    Case Break
+                Case (iSibling = 1 and iLevel = 1 and sTableName = "ShippingMethod")
+                    Get Field_Table_Object of oOrderheader_DD Field OrderHeader.Ship_Via to hoValidationTable
+                    // Needs to enumerate and use a temporary array as the TableData function returns a two
+                    // dimensional array instead of a jagged array
+                    Get TableData of hoValidationTable to vValidationTableData
+                    Move (SizeOfArray (vValidationTableData) - 1) to iElements
+                    For iElement from 0 to iElements
+                        Move vValidationTableData[iElement][0] to vData[iElement][0]
+                        Move vValidationTableData[iElement][1] to vData[iElement][1]
+                    Loop
+                    Case Break
+                Case (iSibling = 2 and iLevel = 1 and sTableName = "SalesPerson")
+                    Send Clear of oSalesPerson_DD
+                    Send Request_Read of oSalesPerson_DD FIRST_RECORD SalesPerson.File_Number 1
+                    While (Found)
+                        Move (Trim (SalesPerson.ID)) to vData[iRow][0]
+                        Move (Trim (SalesPerson.Name)) to vData[iRow][1]
+                        Increment iRow
+                        Send Locate_Next of oSalesPerson_DD
+                    Loop
+                    Case Break
+                Case (iSibling = 3 and iLevel = 1 and sTableName = "PaymentOption")
+                    Get Field_Table_Object of oOrderheader_DD Field OrderHeader.Terms to hoValidationTable
+                    // Needs to enumerate and use a temporary array as the TableData function returns a two
+                    // dimensional array instead of a jagged array
+                    Get TableData of hoValidationTable to vValidationTableData
+                    Move (SizeOfArray (vValidationTableData) - 1) to iElements
+                    For iElement from 0 to iElements
+                        Move vValidationTableData[iElement][0] to vData[iElement][0]
+                        Move vValidationTableData[iElement][1] to vData[iElement][1]
+                    Loop
+                    Case Break
+                Case (iSibling = 4 and iLevel = 1 and sTableName = "Sales")
+                    // There is a maximum of 12 months possible, so init the array
+                    Move (ResizeArray (vData, 12)) to vData
+                    // Initialize the array
+                    For iRow from 0 to 11
+                        Move (iRow + 1) to vData[iRow][0]
+                        Move 0 to vData[iRow][1]
+                    Loop
+                    Send Clear of oOrderHeader_DD
+                    Send Request_Read of oOrderHeader_DD FIRST_RECORD OrderHeader.File_Number 3
+                    While (Found)
+                        Move (DateGetMonth (OrderHeader.Order_Date)) to iRow
+                        Move (Cast (vData[iRow-1][1], Number) + OrderHeader.Order_Total) to vData[iRow-1][1]
+                        Send Locate_Next of oOrderHeader_DD
+                    Loop
+                    Case Break
+            Case End
+
+            Function_Return vData
+        End_Function
+    End_Object
+
+    Object oDestinationGroup Is A RadioGroup
+        Set Label to "Output destination"
+        Set Location to 4 5
+        Set Size to 46 77
+
+        Object oScreenRadio Is A Radio
+            Set Label to "Preview"
+            Set Size to 10 60
+            Set Location to 10 6
+            Set Status_Help to "Print the report to screen"
+        End_Object
+
+        Object oPrinterRadio Is A Radio
+            Set Label to "Printer"
+            Set Size to 10 60
+            Set Location to 22 6
+            Set Status_Help to "Prints the report to printer"
+        End_Object
+
+        Object oExportRadio Is A Radio
+            Set Label to "Export"
+            Set Size to 10 60
+            Set Location to 34 6
+            Set Status_Help to "Outputs the report to disk file (PDF, CSV, Image, HTML, Excel, RTF)"
+        End_Object
+
+        Procedure Notify_Select_State Integer iNewItem Integer iOldItem
+            Forward Send Notify_Select_State iNewItem iOldItem
+
+            Case Begin
+                Case (iNewItem = 0)
+                    Set Output_Device_Mode to PRINT_TO_WINDOW
+                    Case Break
+                Case (iNewItem = 1)
+                    Set Output_Device_Mode to PRINT_TO_PRINTER
+                    Case Break
+                Case (iNewItem = 2)
+                    Set Output_Device_Mode to PRINT_TO_FILE
+                    Case Break
+            Case End
+        End_Procedure
+    End_Object
+
+    Object oSortOrderGroup is a Group
+        Set Size to 46 143
+        Set Location to 4 87
+        Set Label to "Sort Order"
+        Set peAnchors to anAll
+
+        Object oSubReportsTreeView is a TreeView
+            Set Size to 31 131
+            Set Location to 11 5
+            Set peAnchors to anAll
+            Set pbEnableCheckboxes to True
+
+            // Find the highest ranking in the sibling items of the passed column item
+            Function SortFieldRank Handle hColumnItem Returns Integer
+                Handle hSubReportItem hChildItem
+                Integer iItemData iRank
+
+                Move -1 to iRank
+                Get ParentItem hColumnItem to hSubReportItem
+                Get ChildItem hSubReportItem to hChildItem
+                While (hChildItem <> 0)
+                    Get ItemData hChildItem to iItemData
+                    Move (iItemData max iRank) to iRank
+                    Get NextSiblingItem hChildItem to hChildItem
+                Loop
+
+                Function_Return iRank
+            End_Function
+
+            // Renumber items ranked higher than the item that got deselected
+            Procedure RenumberRank Handle hColumnItem Integer iRank
+                Handle hSubReportItem hChildItem
+                Integer iItemData
+
+                Get ParentItem hColumnItem to hSubReportItem
+                Get ChildItem hSubReportItem to hChildItem
+                While (hChildItem <> 0)
+                    Get ItemData hChildItem to iItemData
+                    If (iItemData > -1 and iItemData > iRank) Begin
+                        Set ItemData hChildItem to (iItemData - 1)
+                    End
+                    Get NextSiblingItem hChildItem to hChildItem
+                Loop
+                Set ItemData hColumnItem to -1
+            End_Procedure
+
+            // Renumber the sort field order when the user deselects the checkbox of a column or
+            // assign the next order for the sort fields.
+            Procedure OnCheckStateChange Handle hColumnItem
+                Boolean bChecked
+                Integer iItemData iRank
+
+                Get ItemChecked hColumnItem to bChecked
+                Get SortFieldRank hColumnItem to iRank
+                If (bChecked) Begin
+                    Set ItemData hColumnItem to (iRank + 1)
+                End
+                Else Begin
+                    Get ItemData hColumnItem to iItemData
+                    If (iItemData < iRank) Begin
+                        Send RenumberRank hColumnItem iItemData
+                    End
+                    Else Begin
+                        Set ItemData hColumnItem to -1
+                    End
+                End
+            End_Procedure
+
+            // Loop through all high level (the sub-report name) items. Per item remove the existing sort fields
+            // and collect the checked columns in the selected order to create a record field. The name of the
+            // column is stored in the treeview item label but needs to be passed as {tablename.columnname} to the
+            // report engine. For this construct the sort field from the tablename of the first table of the sub-report
+            // and remember that in this example all sub-reports have only one table.
+            Procedure ChangeReportSortFields String sReportId
+                Handle hSubReportItem hColumnItem
+                Integer iSubReport iHighest iRank iItemData
+                String sSubReportId sTableName sColumnName sSortField
+                Boolean bChecked
+
+                Get RootItem to hSubReportItem
+                While (hSubReportItem <> 0)
+                    Get ItemData hSubReportItem to iSubReport
+                    Get SubReportId of oReport sReportId iSubReport to sSubReportId
+                    Get psTableName of oReport sSubReportId 0 to sTableName
+                    Send RemoveAllRecordSortFields of oReport sSubReportId
+                    Get ChildItem hSubReportItem to hColumnItem
+                    Get SortFieldRank hColumnItem to iHighest
+                    If (iHighest > -1) Begin
+                        For iRank from 0 to iHighest
+                            Get ChildItem hSubReportItem to hColumnItem
+                            While (hColumnItem <> 0)
+                                Get ItemChecked hColumnItem to bChecked
+                                If (bChecked) Begin
+                                    Get ItemData hColumnItem to iItemData
+                                    If (iItemData = iRank) Begin
+                                        Get ItemLabel hColumnItem to sColumnName
+                                        Move ("{" + sTableName + '.' + sColumnName + "}") to sSortField
+                                        Send AddRecordSortField of oReport sSubReportId sSortField C_drAscending
+                                    End
+                                End
+                                Get NextSiblingItem hColumnItem to hColumnItem
+                            Loop
+                        Loop
+                    End
+
+                    Get NextSiblingItem hSubReportItem to hSubReportItem
+                Loop
+            End_Procedure
+
+            // Open the report, enumerate all sub-report and list their names in the treeview. Then for each
+            // sub-report enumerate the columns for the first table (all these sub-reports only have one database table)
+            // Get the record sort fields (if present) and take the column name out of this as the format is
+            // {tablename.columnname}. If the table column is the same as one of the record sort fields mark the item
+            // as checked by setting the checkbox state and store the N-th sortfield in the itemdata of the tree item.
+            Procedure OnCreateTree
+                String sReportId sSubReportId sReportName sTableName sSortField sColumnName
+                String[] sSortFields
+                Integer iSubReports iSubReport iRecordSortFields iRecordSortField
+                Integer iColumns iColumn iElement
+                Handle hSubReportItem hColumnItem
+
+                Get OpenReport of oReport to sReportId
+                If (sReportId <> "") Begin
+                    Get SubReportCount of oReport sReportId to iSubReports
+                    Decrement iSubReports
+                    For iSubReport from 0 to iSubReports
+                        Get SubReportId of oReport sReportId iSubReport to sSubReportId
+                        Get ComReportName of oReport sSubReportId to sReportName
+                        Get AddTreeItem sReportName 0 iSubReport 0 0 to hSubReportItem
+                        Get TableColumnCount of oReport sSubReportId 0 to iColumns
+                        Set ItemCheckBox hSubReportItem to False
+
+                        Get psTableName of oReport sSubReportId 0 to sTableName
+
+                        Get RecordSortCount of oReport sSubReportId to iRecordSortFields
+                        Move (ResizeArray (sSortFields, iRecordSortFields, '')) to sSortFields
+                        Decrement iRecordSortFields
+                        For iRecordSortField from 0 to iRecordSortFields
+                            Get psRecordSortField of oReport sSubReportId iRecordSortField to sSortField
+                            // Only use sort fields that are database columns
+                            If (Left (sSortField, 1) = '{' and Right (sSortField, 1) = '}') Begin
+                                Move (Mid (sSortField, Length (sSortField) - 2, 2)) to sSortField
+                                Move (Replace (sTableName, sSortField, '')) to sSortField
+                                If (Left (sSortField, 1) = '.') Begin
+                                    Move (Right (sSortField, Length (sSortField) - 1)) to sSortField
+                                End
+                                Move sSortField to sSortFields[iRecordSortField]
+                            End
+                        Loop
+
+                        Decrement iColumns
+                        For iColumn from 0 to iColumns
+                            Get TableColumnName of oReport sSubReportId 0 iColumn to sColumnName
+                            Get AddTreeItem sColumnName hSubReportItem -1 0 0 to hColumnItem
+                            Set ItemCheckBox hColumnItem to True
+                            Move (SearchArray (sColumnName, sSortFields)) to iElement
+                            If (iElement <> -1) Begin
+                                Set ItemChecked hColumnItem to True
+                                Set ItemData hColumnItem to iElement
+                            End
+                        Loop
+                    Loop
+                    Send CloseReport of oReport sReportId
+                End
+            End_Procedure
+        End_Object
+    End_Object
+
+    Object oPrintButton Is A Button
+        Set Label to "&Print"
+        Set Status_Help to "Print the report"
+        Set Size to 14 50
+        Set Location to 52 127
+        Set Default_State to True
+        Set peAnchors to anBottomRight
+
+        // Run the report but instead of sending runreport the code opens the report, collects
+        // the sort order that could be changed by the user and output the report to screen, printer
+        // or export format
+        Procedure OnClick
+            String sReportId
+
+            Get OpenReport of oReport to sReportId
+            If (sReportId <> '') Begin
+                Send ChangeReportSortFields of oSubReportsTreeView sReportId
+                Send OutputReport of oReport
+            End
+        End_Procedure
+    End_Object
+
+    Object oCancelButton Is A Button
+        Set Label to "&Cancel"
+        Set Size to 14 50
+        Set Location to 52 182
+        Set Status_Help to "Cancel this Panel"
+        Set peAnchors to anBottomRight
+
+        // This procedure closes the report view.
+        Procedure OnClick
+            Send Request_Cancel
+        End_Procedure
+    End_Object
+
+    On_Key Key_Alt+Key_C Send KeyAction of oCancelButton
+    On_Key Key_Alt+Key_P Send KeyAction of oPrintButton
+
+    Set Location to 6 6
+    Set Size to 69 236
+Cd_End_Object

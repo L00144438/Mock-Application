@@ -1,0 +1,19 @@
+Object
+    Procedure OnInitializeReport
+        Forward Send OnInitializeReport
+        
+        Send SetFilters
+        Send SetSortFields
+        Send SetParameters
+    End_Procedure
+    
+    Procedure SetFilters
+// ToDo: Setup a data filter. For example based on the selection criteria entered by the end-user.
+    End_Procedure
+    
+    Procedure SetParameters
+    End_Procedure
+    
+    Procedure SetSortFields
+    End_Procedure
+End_Object

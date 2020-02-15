@@ -1,0 +1,42 @@
+<Templates>
+	<Template>
+		<ComponentType>51</ComponentType>
+		<Name>ReportView Wizard</Name>
+		<FileName>IntegrateDataFlexReports.exe</FileName>
+		<ImageLarge>DataFlexReportsWizard.ico</ImageLarge>
+		<BriefDescription>DataFlex Reports Integration Wizard</BriefDescription>
+		<LongDescription>Launches the report integration wizard to create a DataFlex Web Framework component for running a report made with DataFlex Reports.\n\nThe wizard can create source code to integrate an existing report or create a new Runtime DataSource (RDS) based report and creates integration source code for this new report. In case of a new report formatting needs to be done via the DataFlex Reports Studio.</LongDescription>
+	</Template>
+	<Template>
+		<ComponentType>5</ComponentType>
+		<Name>ReportView Wizard</Name>
+		<FileName>IntegrateDataFlexReports.exe</FileName>
+		<ImageLarge>DataFlexReportsWizard.ico</ImageLarge>
+		<BriefDescription>DataFlex Reports Integration Wizard</BriefDescription>
+		<LongDescription>Launches the report integration wizard to create a DataFlex Windows Reportview component for running (display, print, export) a report made with DataFlex Reports.\n\nThe wizard can create source code to integrate an existing report or create a new Runtime DataSource (RDS) based report and creates integration source code for this new report. In case of a new report formatting needs to be done via the DataFlex Reports Studio.</LongDescription>
+	</Template>
+	<Template>
+		<ComponentType>51</ComponentType>
+		<Name>PDF WebView</Name>
+		<FileName>WebPDF.tpl</FileName>
+		<ImageLarge>DataFlexReportsTemplate.ico</ImageLarge>
+		<BriefDescription>DataFlex Reports WebView (PDF)</BriefDescription>
+		<LongDescription>This template can be used to create a new basic DataFlex Web Framework component that contains an object of the cDRReport class. After creating the component the report filename needs to be set, the output destination is automatically set to PDF and the result is loaded in a cWebIFrame web control.\n\nYou have to define a report with the DataFlex Reports Studio before you can use the component.</LongDescription>
+	</Template>
+	<Template>
+		<ComponentType>51</ComponentType>
+		<Name>HTML WebView</Name>
+		<FileName>WebHTML.tpl</FileName>
+		<ImageLarge>DataFlexReportsTemplate.ico</ImageLarge>
+		<BriefDescription>DataFlex Reports WebView (HTML)</BriefDescription>
+		<LongDescription>This template can be used to create a new basic DataFlex Web Framework component that contains an object of the cDRReport class. After creating the component the report filename needs to be set, the output destination is automatically set to HTML and the result is loaded in a cWebDRReportViewer web control.\n\nYou have to define a report with the DataFlex Reports Studio before you can use the component.</LongDescription>
+	</Template>	
+	<Template>
+		<ComponentType>5</ComponentType>
+		<Name>ReportView</Name>
+		<FileName>Windows.tpl</FileName>
+		<ImageLarge>DataFlexReportsTemplate.ico</ImageLarge>
+		<BriefDescription>DataFlex Reports ReportView</BriefDescription>
+		<LongDescription>This template can be used to create a DataFlex Windows Reportview component that contains an object of the cDRReport class. After creating the component the report filename needs to be set, the output destination and if applicable the export type and filename.\n\nYou have to define a report with the DataFlex Reports Studio before you can use the component.</LongDescription>
+	</Template>
+</Templates>

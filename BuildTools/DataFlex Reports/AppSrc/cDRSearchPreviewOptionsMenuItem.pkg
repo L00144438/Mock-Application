@@ -1,0 +1,50 @@
+Use cDRMenuItem.pkg
+
+Class cDRSearchPreviewOptionsMenuItem is a cDRMenuItem
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        { Description = "Needs to be set to the function ID for the property that needs to be retrieved. Example: (Reffunc (pbDown))" }
+        Property Handle phmSearchOptionGet 0
+        { Description = "Needs to be set to the SET method ID for the property that needs to be set. Example: (RefProcSet (pbDown))" }
+        Property Handle phmSearchOptionSet 0
+        { Description = "Needs to be set to the object ID of the menu item that contains the SearchOption properties addressed via phmSearchOptionGet and phmSearchOptionSet" }
+        Property Handle phoSearchMenuItem
+
+        Set pbActiveUpdate to True
+    End_Procedure
+    
+    // This automatically called routine returns the result of the GET operation on the property in the searchmenu item
+    // Internally does: Get pbDown of oSearchMenuItem to bValue
+    // Where pbDown is specified in phmSearchOptionGet and oSearchMenuItem is specified via phoSearchMenuItem
+    Function IsChecked Returns Boolean
+        Handle hoSearchMenuItem hmSearchOption
+        Boolean bValue
+        
+        Get phmSearchOptionGet to hmSearchOption
+        If (hmSearchOption <> 0) Begin
+            Get phoSearchMenuItem to hoSearchMenuItem
+            Get hmSearchOption of hoSearchMenuItem to bValue
+        End
+        
+        Function_Return bValue
+    End_Function
+    
+    // When the user clicks on the item the code retrieves the current value of the connected property and reverses
+    // its value. 
+    // Internally: 
+    //      Get pbDown of oSearchMenuItem to bValue
+    //      Set pbDown of oSearchMenuItem to (not (bValue))
+    Procedure OnExecute Variant vCommandBarControl
+        Handle hoSearchMenuItem hmSearchOption
+        Boolean bValue
+
+        Get phmSearchOptionGet to hmSearchOption
+        If (hmSearchOption <> 0) Begin
+            Get phoSearchMenuItem to hoSearchMenuItem
+            Get hmSearchOption of hoSearchMenuItem to bValue
+            Get phmSearchOptionSet to hmSearchOption
+            Set hmSearchoption of hoSearchMenuItem to (not (bValue))
+        End
+    End_Procedure
+End_Class
