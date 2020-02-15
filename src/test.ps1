@@ -6,4 +6,5 @@ Write-Host "AGENT_BUILDDIRECTORY contents:"
 gci $Env:AGENT_BUILDDIRECTORY
 Write-Host "BUILD_SOURCESDIRECTORY contents:"
 gci $Env:BUILD_SOURCESDIRECTORY
-Write-Host "Over and out."
+Write-Host "End"
+exit 1
