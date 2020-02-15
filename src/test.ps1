@@ -7,4 +7,5 @@ gci $Env:AGENT_BUILDDIRECTORY
 Write-Host "BUILD_SOURCESDIRECTORY contents:"
 gci $Env:BUILD_SOURCESDIRECTORY
 Write-Host "End"
+write-error "should fail"
 exit 1
