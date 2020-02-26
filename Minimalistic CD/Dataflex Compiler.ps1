@@ -1,0 +1,1 @@
+﻿& "C:\test\buildtools\bin\DFComp.exe" -x"C:\test\BuildTools\Order Entry\Order entry.sws" -e2C "C:\test\Order Entry\AppSrc\Order.src"
